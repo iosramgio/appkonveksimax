@@ -1,0 +1,235 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Color Variables */
+:root {
+  /* Primary Colors */
+  --color-primary-50: #fdf2f2;
+  --color-primary-100: #fbe5e5;
+  --color-primary-200: #f5c9c9;
+  --color-primary-300: #eea3a3;
+  --color-primary-400: #e57373;
+  --color-primary-500: #620000;  /* Main brand color */
+  --color-primary-600: #4a0000;
+  --color-primary-700: #3a0000;
+  --color-primary-800: #2a0000;
+  --color-primary-900: #1a0000;
+
+  /* Accent Colors */
+  --color-accent-50: #f0f9ff;
+  --color-accent-100: #e0f2fe;
+  --color-accent-200: #bae6fd;
+  --color-accent-300: #7dd3fc;
+  --color-accent-400: #38bdf8;
+  --color-accent-500: #0ea5e9;
+  --color-accent-600: #0284c7;
+  --color-accent-700: #0369a1;
+  --color-accent-800: #075985;
+  --color-accent-900: #0c4a6e;
+
+  /* Neutral Colors */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+
+  /* Success Colors */
+  --color-success-50: #f0fdf4;
+  --color-success-100: #dcfce7;
+  --color-success-200: #bbf7d0;
+  --color-success-300: #86efac;
+  --color-success-400: #4ade80;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+  --color-success-800: #166534;
+  --color-success-900: #14532d;
+
+  /* Warning Colors */
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  --color-warning-800: #92400e;
+  --color-warning-900: #78350f;
+
+  /* Error Colors */
+  --color-error-50: #fef2f2;
+  --color-error-100: #fee2e2;
+  --color-error-200: #fecaca;
+  --color-error-300: #fca5a5;
+  --color-error-400: #f87171;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
+  --color-error-800: #991b1b;
+  --color-error-900: #7f1d1d;
+}
+
+/* Custom button styles */
+@layer base {
+  button {
+    @apply text-inherit;
+  }
+  button:hover {
+    @apply text-inherit;
+  }
+  a {
+    @apply text-inherit;
+  }
+  a:hover {
+    @apply text-inherit;
+  }
+}
+
+/* Modern Button Variants */
+@layer components {
+  .btn-primary {
+    @apply bg-[#620000] text-white hover:bg-[#4a0000] transition-all duration-300;
+  }
+  
+  .btn-secondary {
+    @apply bg-[#f5c9c9] text-[#620000] hover:bg-[#eea3a3] transition-all duration-300;
+  }
+  
+  .btn-accent {
+    @apply bg-[#0ea5e9] text-white hover:bg-[#0284c7] transition-all duration-300;
+  }
+  
+  .btn-success {
+    @apply bg-[#22c55e] text-white hover:bg-[#16a34a] transition-all duration-300;
+  }
+  
+  .btn-warning {
+    @apply bg-[#f59e0b] text-white hover:bg-[#d97706] transition-all duration-300;
+  }
+  
+  .btn-error {
+    @apply bg-[#ef4444] text-white hover:bg-[#dc2626] transition-all duration-300;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-[#620000] text-[#620000] hover:bg-[#620000] hover:text-white transition-all duration-300;
+  }
+  
+  .btn-ghost {
+    @apply text-[#620000] hover:bg-[#f5c9c9] transition-all duration-300;
+  }
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f3f4f6;
+  color: #111827;
+  min-height: 100vh;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Fix for mobile navbar */
+@media (max-width: 768px) {
+  .mobile-menu-open {
+    overflow: hidden;
+  }
+}
+
+/* Adding focus styles for accessibility */
+a:focus, button:focus, input:focus, select:focus, textarea:focus {
+  outline: 2px solid #620000;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(98, 0, 0, 0.2);
+}
+
+/* Hide focus outline for mouse users */
+.js-focus-visible :focus:not(.focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Custom focus ring for buttons */
+button:focus-visible {
+  outline: 2px solid #620000;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(98, 0, 0, 0.1);
+}
+
+/* Logo animation styles */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.logo-max:hover {
+  position: relative;
+}
+
+.logo-max:hover::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #620000, transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.logo-supply:hover {
+  animation: float 2s ease-in-out infinite;
+}
