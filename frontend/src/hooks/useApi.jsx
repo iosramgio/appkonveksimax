@@ -18,6 +18,23 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Remove any custom headers that might cause CORS issues
+    // Only keep essential headers
+    const safeHeaders = ['Content-Type', 'Authorization'];
+    Object.keys(config.headers).forEach(header => {
+      if (!safeHeaders.includes(header) && 
+          !header.startsWith('common') && 
+          !header.startsWith('delete') && 
+          !header.startsWith('get') && 
+          !header.startsWith('head') && 
+          !header.startsWith('post') && 
+          !header.startsWith('put') && 
+          !header.startsWith('patch')) {
+        delete config.headers[header];
+      }
+    });
+    
     return config;
   },
   (error) => {

@@ -49,13 +49,14 @@ const CustomerOrders = () => {
     }
     
     try {
-      const headers = {
-        'x-debug-user': user?._id || 'no-user',
-        'x-debug-role': user?.role || 'no-role'
-      };
+      // Remove custom debug headers that cause CORS issues
+      // const headers = {
+      //   'x-debug-user': user?._id || 'no-user',
+      //   'x-debug-role': user?.role || 'no-role'
+      // };
       
       // Use a direct API call to ensure we're getting the right data
-      const response = await api.get(`/orders?${queryParams.toString()}`, { headers });
+      const response = await api.get(`/orders?${queryParams.toString()}`);
       
       console.log('Orders response:', response.data);
       

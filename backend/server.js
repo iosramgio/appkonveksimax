@@ -54,7 +54,17 @@ app.use(cors({
   origin: ["https://appkonveksimax.vercel.app", "http://localhost:5173", "https://www.maxsupply.id", "https://maxsupply.id"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ]
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
