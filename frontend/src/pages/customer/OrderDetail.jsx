@@ -12,6 +12,23 @@ import { getMidtransConfig } from '../../api/payments';
 
 const OrderStatusSteps = ({ currentStatus }) => {
   const statuses = ['Pesanan Diterima', 'Diproses', 'Selesai Produksi', 'Siap Kirim', 'Selesai'];
+  
+  // Handle rejected orders separately
+  if (currentStatus === 'Ditolak') {
+    return (
+      <div className="py-6">
+        <div className="flex items-center justify-center">
+          <div className="bg-red-100 text-red-800 px-4 py-3 rounded-lg flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-medium">Pesanan Anda telah ditolak</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   const currentIndex = statuses.indexOf(currentStatus);
   
   return (
@@ -127,6 +144,8 @@ const OrderDetail = () => {
         return 'bg-purple-100 text-purple-800';
       case 'Selesai':
         return 'bg-gray-100 text-gray-800';
+      case 'Ditolak':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-600';
     }
@@ -782,7 +801,7 @@ const OrderDetail = () => {
                 {/* === AKHIR BLOK DETAIL PEMBAYARAN BARU === */}
                 
                 {/* Tombol Aksi Pembayaran */}
-                {!isPaid && (
+                {!isPaid && order.status !== 'Ditolak' && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     {downPaymentStatus === 'paid' ? (
                       // Jika DP sudah dibayar, tampilkan tombol Lunasi Sisa Pembayaran
@@ -809,12 +828,25 @@ const OrderDetail = () => {
                           `Bayar Sekarang (${formatCurrency(orderTotal)})`)}
                       </Button>
                     )}
+                  </div>
+                )}
+                
+                {/* Pesan untuk pesanan yang ditolak */}
+                {order.status === 'Ditolak' && (
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <div className="bg-red-50 border border-red-100 rounded-md p-3 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-sm text-red-700 font-medium">Pesanan ini telah ditolak dan tidak dapat diproses lebih lanjut.</span>
                     </div>
-                  )}
+                  </div>
+                )}
+                
                 {isPaid && (
                   <div className="mt-6 text-center">
                     <p className="text-sm text-green-600 font-medium">Pembayaran Lunas</p>
-                </div>
+                  </div>
                 )}
 
               </div>

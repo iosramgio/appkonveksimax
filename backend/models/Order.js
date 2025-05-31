@@ -156,6 +156,7 @@ const OrderSchema = new mongoose.Schema(
         "Selesai Produksi",
         "Siap Kirim",
         "Selesai",
+        "Ditolak"
       ],
       default: "Pesanan Diterima",
     },

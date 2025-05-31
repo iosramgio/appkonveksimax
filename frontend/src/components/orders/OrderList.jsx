@@ -81,6 +81,8 @@ const OrderList = ({ orders = [], loading, onStatusChange, onPageChange, totalPa
         return 'bg-purple-100 text-purple-800 border border-purple-200';
       case 'Selesai':
         return 'bg-gray-100 text-gray-800 border border-gray-200';
+      case 'Ditolak':
+        return 'bg-red-100 text-red-800 border border-red-200';
       default:
         return 'bg-gray-100 text-gray-600 border border-gray-200';
     }
@@ -91,7 +93,7 @@ const OrderList = ({ orders = [], loading, onStatusChange, onPageChange, totalPa
       case 'Pesanan Diterima':
         return (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
       case 'Diproses':
@@ -117,6 +119,12 @@ const OrderList = ({ orders = [], loading, onStatusChange, onPageChange, totalPa
         return (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        );
+      case 'Ditolak':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
       default:

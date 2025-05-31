@@ -963,6 +963,7 @@ const updateOrderStatus = async (req, res) => {
         "Selesai Produksi",
         "Siap Kirim",
         "Selesai",
+        "Ditolak"
       ];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
@@ -975,8 +976,8 @@ const updateOrderStatus = async (req, res) => {
         // Admin can change to any status
         validTransition = true;
       } else if (req.user.role === "cashier") {
-        // Cashier can only set status to "Pesanan Diterima" or "Siap Kirim"
-        validTransition = ["Pesanan Diterima", "Siap Kirim"].includes(status);
+        // Cashier can set status to "Pesanan Diterima", "Siap Kirim", or "Ditolak"
+        validTransition = ["Pesanan Diterima", "Siap Kirim", "Ditolak"].includes(status);
       } else if (req.user.role === "staff") {
         // Staff can set status to "Diproses", "Selesai Produksi", "Siap Kirim", or "Selesai"
         validTransition = ["Diproses", "Selesai Produksi", "Siap Kirim", "Selesai"].includes(status);

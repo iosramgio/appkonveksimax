@@ -120,6 +120,8 @@ const OrderDetail = () => {
         return 'bg-purple-100 text-purple-800 border border-purple-200';
       case 'Selesai':
         return 'bg-gray-100 text-gray-800 border border-gray-200';
+      case 'Ditolak':
+        return 'bg-red-100 text-red-800 border border-red-200';
       default:
         return 'bg-gray-100 text-gray-600 border border-gray-200';
     }
@@ -338,6 +340,35 @@ const OrderDetail = () => {
     setShowPaymentForm(true);
   };
   
+  const handleRejectOrder = async () => {
+    // Show confirmation dialog
+    if (!window.confirm('Apakah Anda yakin ingin menolak pesanan ini? Pesanan yang ditolak tidak dapat diproses lebih lanjut.')) {
+      return;
+    }
+    
+    setUpdatingStatus(true);
+    try {
+      const response = await api.patch(`${ORDERS}/${orderId}/status`, { 
+        status: 'Ditolak',
+        notes: 'Pesanan ditolak oleh kasir'
+      });
+      
+      if (response.data && response.data.order) {
+        setOrder(response.data.order);
+        showNotification('Pesanan berhasil ditolak', 'success');
+      }
+    } catch (error) {
+      console.error('Error rejecting order:', error);
+      if (error.response?.data?.message) {
+        showNotification(error.response.data.message, 'error');
+      } else {
+        showNotification('Gagal menolak pesanan', 'error');
+      }
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -398,6 +429,20 @@ const OrderDetail = () => {
               icon={
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              }
+            />
+          )}
+          {/* Reject Order Button - Only show if order is not already rejected and not completed */}
+          {order.status !== 'Ditolak' && order.status !== 'Selesai' && (
+            <Button 
+              label="Tolak Pesanan"
+              variant="danger"
+              isLoading={updatingStatus}
+              onClick={handleRejectOrder}
+              icon={
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               }
             />
@@ -1021,7 +1066,8 @@ const OrderDetail = () => {
 
               {/* Tombol Proses Pembayaran */}
               {/* Untuk pesanan manual dengan DP yang sudah dibayar */}
-              {order.isOfflineOrder && 
+              {order.status !== 'Ditolak' && 
+               order.isOfflineOrder && 
                order.paymentDetails.downPayment && 
                order.paymentDetails.downPayment.status === 'paid' && 
                order.paymentDetails.remainingPayment && 
@@ -1041,7 +1087,8 @@ const OrderDetail = () => {
               )}
               
               {/* Untuk pesanan belum lunas (termasuk pesanan dengan DP yang belum dibayar) */}
-              {!order.paymentDetails.isPaid && 
+              {order.status !== 'Ditolak' && 
+               !order.paymentDetails.isPaid && 
                !(order.isOfflineOrder && 
                  order.paymentDetails.downPayment && 
                  order.paymentDetails.downPayment.status === 'paid' && 
@@ -1057,7 +1104,8 @@ const OrderDetail = () => {
               )}
               
               {/* Tombol khusus untuk pesanan manual dengan DP yang masih pending */}
-              {order.isOfflineOrder && 
+              {order.status !== 'Ditolak' && 
+               order.isOfflineOrder && 
                order.paymentDetails.downPayment && 
                order.paymentDetails.downPayment.status === 'pending' && (
                 <div className="mt-4">
@@ -1071,6 +1119,18 @@ const OrderDetail = () => {
                       </svg>
                     }
                   />
+                </div>
+              )}
+              
+              {/* Pesan untuk pesanan yang ditolak */}
+              {order.status === 'Ditolak' && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg">
+                  <div className="flex items-center text-red-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-medium">Pesanan ini telah ditolak dan tidak dapat diproses lebih lanjut.</span>
+                  </div>
                 </div>
               )}
 
