@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { OrbitControls, Environment, ContactShadows, useGLTF, Center, BakeShadows } from '@react-three/drei';
+import { OrbitControls, Environment, Center, BakeShadows } from '@react-three/drei';
 import { Suspense } from 'react';
 import * as THREE from 'three';
 
@@ -36,8 +36,8 @@ function Model({ scale = 1.5, position = [0, 0.2, 0], rotation = [0, 0, 0], isMo
       mixer.current.update(clock.current.getDelta() * 0.5); // Slow down the animation
     }
     
-    if (modelRef.current) {
-      // Very slow, smooth rotation
+    if (modelRef.current && !isMobile) {
+      // Only apply automatic rotation on desktop
       const time = clock.current.getElapsedTime();
       
       // Smooth rotation with subtle easing
@@ -65,11 +65,58 @@ function Model({ scale = 1.5, position = [0, 0.2, 0], rotation = [0, 0, 0], isMo
   );
 }
 
+// Controls component to handle touch events
+function TouchControls({ isMobile }) {
+  const { camera, gl } = useThree();
+  const controlsRef = useRef();
+  
+  useEffect(() => {
+    if (controlsRef.current) {
+      const controls = controlsRef.current;
+      
+      // Configure for mobile specifically
+      if (isMobile) {
+        controls.rotateSpeed = 1.5;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.1;
+        controls.autoRotate = false;
+        controls.enableZoom = true;
+        controls.zoomSpeed = 0.7;
+        
+        // Force touch behavior
+        controls.touches = {
+          ONE: THREE.TOUCH.ROTATE,
+          TWO: THREE.TOUCH.DOLLY
+        };
+      }
+    }
+  }, [isMobile]);
+  
+  return (
+    <OrbitControls 
+      ref={controlsRef}
+      args={[camera, gl.domElement]}
+      makeDefault
+      enablePan={false}
+      enableZoom={true}
+      zoomSpeed={isMobile ? 0.7 : 1}
+      minPolarAngle={Math.PI / 4}
+      maxPolarAngle={Math.PI / 2}
+      autoRotate={!isMobile}
+      autoRotateSpeed={0.2}
+      target={[0, 0.5, 0]}
+      rotateSpeed={isMobile ? 1.5 : 0.8}
+      enableDamping={true}
+      dampingFactor={0.1}
+    />
+  );
+}
+
 // Main component with canvas setup
 export default function Model3D() {
   const [isMobile, setIsMobile] = useState(false);
-  const controlsRef = useRef();
   const [showInstructions, setShowInstructions] = useState(true);
+  const containerRef = useRef(null);
   
   useEffect(() => {
     // Check if device is mobile
@@ -95,36 +142,48 @@ export default function Model3D() {
     };
   }, []);
 
-  // Add touch event handlers to prevent default behavior on canvas
+  // Prevent default touch behavior on the container
   useEffect(() => {
-    const canvas = document.querySelector('canvas');
-    if (canvas) {
-      const preventDefaultTouch = (e) => {
-        if (e.touches && e.touches.length > 1) {
-          e.preventDefault();
-        }
-      };
-      
-      canvas.addEventListener('touchstart', preventDefaultTouch, { passive: false });
-      canvas.addEventListener('touchmove', preventDefaultTouch, { passive: false });
-      
-      // Hide instructions on first interaction
-      const hideInstructions = () => {
-        setShowInstructions(false);
-      };
-      
-      canvas.addEventListener('touchstart', hideInstructions, { once: true });
-      
-      return () => {
-        canvas.removeEventListener('touchstart', preventDefaultTouch);
-        canvas.removeEventListener('touchmove', preventDefaultTouch);
-        canvas.removeEventListener('touchstart', hideInstructions);
-      };
-    }
-  }, []);
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const preventTouchDefault = (e) => {
+      e.preventDefault();
+    };
+    
+    const hideInstructions = () => {
+      setShowInstructions(false);
+    };
+    
+    // Add touch event handlers to the container
+    container.addEventListener('touchstart', preventTouchDefault, { passive: false });
+    container.addEventListener('touchmove', preventTouchDefault, { passive: false });
+    container.addEventListener('touchend', preventTouchDefault, { passive: false });
+    container.addEventListener('touchstart', hideInstructions, { once: true });
+    
+    // Also prevent scrolling on the document body
+    document.body.style.overflow = 'hidden';
+    
+    return () => {
+      container.removeEventListener('touchstart', preventTouchDefault);
+      container.removeEventListener('touchmove', preventTouchDefault);
+      container.removeEventListener('touchend', preventTouchDefault);
+      container.removeEventListener('touchstart', hideInstructions);
+      document.body.style.overflow = '';
+    };
+  }, [containerRef.current]);
   
   return (
-    <div className="h-full w-full touch-manipulation relative">
+    <div 
+      ref={containerRef}
+      className="h-full w-full relative" 
+      style={{ 
+        touchAction: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        overflow: 'hidden'
+      }}
+    >
       {isMobile && showInstructions && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
           <div className="bg-black/60 text-white px-4 py-2 rounded-lg text-center max-w-[200px] backdrop-blur-sm">
@@ -144,6 +203,9 @@ export default function Model3D() {
         shadows
         dpr={[1, 2]} // Optimize for mobile by limiting pixel ratio
         style={{ touchAction: 'none' }} // Prevent browser's default touch actions
+        onCreated={({ gl }) => {
+          gl.setClearColor(new THREE.Color('#ffffff'), 0);
+        }}
       >
         <Suspense fallback={null}>
           {/* Lighting for better visualization */}
@@ -157,27 +219,8 @@ export default function Model3D() {
           <Environment preset="studio" />
           <BakeShadows />
           
-          <OrbitControls 
-            ref={controlsRef}
-            enablePan={false}
-            enableZoom={true}
-            zoomSpeed={isMobile ? 0.5 : 1}
-            minPolarAngle={Math.PI / 4}
-            maxPolarAngle={Math.PI / 2}
-            autoRotate={!isMobile} // Disable autoRotate on mobile to allow manual control
-            autoRotateSpeed={0.2}
-            target={[0, 0.5, 0]}
-            // Improved touch sensitivity for mobile
-            rotateSpeed={isMobile ? 1 : 0.8}
-            touches={{
-              one: 1, // Single finger rotation
-              two: 2, // Two finger zoom
-              three: 3 // Three finger pan (although pan is disabled)
-            }}
-            // Enhanced smooth damping effect
-            enableDamping={true}
-            dampingFactor={0.1}
-          />
+          {/* Use the custom TouchControls component */}
+          <TouchControls isMobile={isMobile} />
         </Suspense>
       </Canvas>
     </div>
