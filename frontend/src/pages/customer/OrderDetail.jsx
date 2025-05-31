@@ -181,13 +181,43 @@ const OrderDetail = () => {
       let paymentType = 'fullPayment';
       let amountToPay = order.paymentDetails.total; // Default ke total keseluruhan
       
+      // Check if this is a pending payment that needs to be completed
+      const hasPendingFullPayment = payments && payments.some(payment => 
+        payment.status === 'pending' && payment.paymentType === 'fullPayment'
+      );
+      
+      // Log payment information for debugging
+      console.log('Current payments:', payments);
+      console.log('Has pending full payment:', hasPendingFullPayment);
+      console.log('DP status:', order.paymentDetails.downPayment?.status);
+      console.log('DP required:', order.paymentDetails.downPayment?.required);
+      
+      // If DP is already paid, this must be a remaining payment
       if (order.paymentDetails.downPayment?.status === 'paid' && !order.paymentDetails.isPaid) {
         paymentType = 'remainingPayment';
-        amountToPay = order.paymentDetails.remainingPayment.amount; 
-      } else if (order.paymentDetails.downPayment?.required && order.paymentDetails.downPayment?.status !== 'paid' && order.paymentDetails.downPayment?.amount > 0) {
+        amountToPay = order.paymentDetails.remainingPayment.amount;
+      } 
+      // If there's a pending full payment, keep it as full payment
+      else if (hasPendingFullPayment) {
+        paymentType = 'fullPayment';
+        amountToPay = order.paymentDetails.total;
+      }
+      // If DP is required and not paid yet, and no pending full payment exists
+      else if (order.paymentDetails.downPayment?.required && 
+               order.paymentDetails.downPayment?.status !== 'paid' && 
+               order.paymentDetails.downPayment?.amount > 0 &&
+               !hasPendingFullPayment) {
         paymentType = 'downPayment';
         amountToPay = order.paymentDetails.downPayment.amount;
       }
+      // Otherwise, it's a full payment
+      else {
+        paymentType = 'fullPayment';
+        amountToPay = order.paymentDetails.total;
+      }
+      
+      console.log('Payment type determined:', paymentType);
+      console.log('Amount to pay:', amountToPay);
       
       if (amountToPay <= 0) {
         showError("Jumlah pembayaran tidak valid.");
@@ -198,7 +228,8 @@ const OrderDetail = () => {
       const response = await api.post('/payments/pay-order', {
         orderId: order._id,
         paymentType,
-        amount: amountToPay
+        amount: amountToPay,
+        isPendingContinuation: hasPendingFullPayment
       });
       
       if (!response.data || !response.data.token) {
@@ -823,9 +854,14 @@ const OrderDetail = () => {
                         variant="primary"
                       >
                         {paymentLoading ? 'Memproses...' : 
-                         (paymentInfo.downPayment?.required && paymentInfo.downPayment?.amount > 0 && downPaymentStatus !== 'paid' ? 
+                          // Jika ada pembayaran penuh tertunda
+                          (payments && payments.some(p => p.status === 'pending' && p.paymentType === 'fullPayment')) ?
+                          `Lanjutkan Pembayaran Penuh (${formatCurrency(orderTotal)})` :
+                          // Jika DP diperlukan dan belum dibayar dan tidak ada pembayaran penuh tertunda
+                          (paymentInfo.downPayment?.required && paymentInfo.downPayment?.amount > 0 && downPaymentStatus !== 'paid' && 
+                           !payments?.some(p => p.status === 'pending' && p.paymentType === 'fullPayment')) ? 
                           `Bayar DP (${formatCurrency(downPaymentAmount)})` : 
-                          `Bayar Sekarang (${formatCurrency(orderTotal)})`)}
+                          `Bayar Sekarang (${formatCurrency(orderTotal)})`}
                       </Button>
                     )}
                   </div>
