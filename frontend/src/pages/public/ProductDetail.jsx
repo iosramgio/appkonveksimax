@@ -271,7 +271,7 @@ const ProductDetail = () => {
   const fetchProductDetail = async () => {
     try {
       setLoading(true);
-      // Replace direct axios call with API utility
+      // Fixed API call to use proper utility function instead of direct axios call
       const { success, data, error } = await getProductById(productId);
       
       if (!success) {
