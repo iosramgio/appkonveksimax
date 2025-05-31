@@ -270,12 +270,8 @@ const ProductDetail = () => {
   const fetchProductDetail = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/products/${productId}`, {
-        withCredentials: false,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      // Use the configured API instance instead of direct axios
+      const response = await api.get(`/products/${productId}`);
       
       // Periksa format respons dan ambil data produk
       const productData = response.data.product || response.data;
@@ -300,13 +296,13 @@ const ProductDetail = () => {
       setTimeout(() => {
         updatePrice();
       }, 100);
-      } catch (error) {
+    } catch (error) {
       console.error('Error fetching product details:', error);
       toast.error('Gagal mengambil detail produk');
-      } finally {
-        setLoading(false);
-      }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
     
   useEffect(() => {
     fetchProductDetail();
@@ -340,7 +336,7 @@ const ProductDetail = () => {
 
     try {
       // Get selected material object
-      const selectedMaterialObj = product.materials.find(m => 
+      const selectedMaterialObj = product.materials?.find(m => 
         m.name === selectedMaterial || m._id === selectedMaterial
       );
 
@@ -354,7 +350,7 @@ const ProductDetail = () => {
       
       if (sizeBreakdown && sizeBreakdown.length > 0 && !sizeBreakdownError) {
         sizeItems = sizeBreakdown.map(item => {
-          const sizeObj = product.sizes.find(s => s.size === item.size);
+          const sizeObj = product.sizes?.find(s => s.size === item.size);
           return {
             size: item.size,
             material: selectedMaterialObj.name,
@@ -364,7 +360,7 @@ const ProductDetail = () => {
         });
       } else {
         // If no size breakdown, use single size
-        const sizeObj = product.sizes.find(s => s.size === selectedSize);
+        const sizeObj = product.sizes?.find(s => s.size === selectedSize);
         sizeItems = [{
           size: selectedSize,
           material: selectedMaterialObj.name,
@@ -377,8 +373,8 @@ const ProductDetail = () => {
       const priceDetails = calculatePriceBreakdown({
         sizeBreakdown: sizeItems,
         product: {
-          basePrice: product.basePrice,
-          dozenPrice: product.dozenPrice,
+          basePrice: product.basePrice || 0,
+          dozenPrice: product.dozenPrice || 0,
           discount: product.discount || 0,
           customizationFee: product.customizationFee || 0
         },
@@ -718,34 +714,22 @@ const ProductDetail = () => {
   
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="animate-pulse">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="h-96 bg-gray-200 rounded-lg"></div>
-            <div className="space-y-4">
-              <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-32 bg-gray-200 rounded"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
   
   if (!product) {
     return (
-      <div className="container mx-auto p-6 text-center">
-        <p className="text-lg text-gray-600">Produk tidak ditemukan</p>
-        <Link
-          to="/products"
-          className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
-        >
-          Kembali ke Produk
-        </Link>
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow-md p-6 text-center">
+          <h2 className="text-xl font-semibold text-red-500 mb-2">Data Produk Tidak Ditemukan</h2>
+          <p className="text-gray-600 mb-4">Maaf, produk yang Anda cari tidak ditemukan atau telah dihapus.</p>
+          <Link to="/products" className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            Kembali ke Daftar Produk
+          </Link>
+        </div>
       </div>
     );
   }
@@ -757,7 +741,7 @@ const ProductDetail = () => {
           <div className="bg-white rounded-lg shadow-md overflow-hidden mb-4">
             {product.images && product.images.length > 0 ? (
               <img
-                src={product.images[activeImageIndex].url || product.images[activeImageIndex]}
+                src={product.images[activeImageIndex]?.url || product.images[activeImageIndex]}
                 alt={product.name}
                 className="w-full h-96 object-contain"
                 onError={(e) => {
@@ -785,7 +769,7 @@ const ProductDetail = () => {
                   }`}
                 >
                   <img
-                    src={image.url || image}
+                    src={image?.url || image}
                     alt={`${product.name} preview ${index + 1}`}
                     className="w-full h-16 object-cover"
                     onError={(e) => {
@@ -948,11 +932,9 @@ const ProductDetail = () => {
                       setCustomDesign(null);
                       setShowDesignUploader(false);
                     }}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    className="mr-2"
                   />
-                  <label htmlFor="default-design" className="ml-2 text-sm text-gray-700">
-                    Gunakan desain default (polos)
-                  </label>
+                  <label htmlFor="default-design">Gunakan desain default</label>
                 </div>
                 
                 <div className="flex items-center">
@@ -962,11 +944,9 @@ const ProductDetail = () => {
                     name="design-option"
                     checked={customDesign || showDesignUploader}
                     onChange={() => setShowDesignUploader(true)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    className="mr-2"
                   />
-                  <label htmlFor="custom-design" className="ml-2 text-sm text-gray-700">
-                    Upload Desain Anda (Diskusikan dengan Admin Terlebih Dahulu)
-                  </label>
+                  <label htmlFor="custom-design">Upload Desain Anda</label>
                 </div>
               </div>
               
