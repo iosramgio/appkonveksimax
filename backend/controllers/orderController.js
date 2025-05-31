@@ -337,12 +337,25 @@ const createManualOrder = async (req, res) => {
       }
     } else {
       // Create a new customer
-      const { name, email, phone, address } = customer;
+      const { name, email, phone, address } = customer || {};
 
+      // Enhanced validation with better error messages
+      if (!customer) {
+        return res.status(400).json({ message: "Customer data is required" });
+      }
+      
       if (!name || !phone) {
+        // Provide more specific error message
+        const missingFields = [];
+        if (!name) missingFields.push('name');
+        if (!phone) missingFields.push('phone');
+        
         return res
           .status(400)
-          .json({ message: "Customer name and phone are required" });
+          .json({ 
+            message: "Customer name and phone are required",
+            details: `Missing fields: ${missingFields.join(', ')}`
+          });
       }
 
       // Check if customer with same email or phone exists
