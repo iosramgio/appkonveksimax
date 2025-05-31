@@ -142,34 +142,32 @@ export default function Model3D() {
     };
   }, []);
 
-  // Prevent default touch behavior on the container
+  // Handle touch events only within the 3D container
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     
+    // Only prevent default on the container itself
     const preventTouchDefault = (e) => {
       e.preventDefault();
+      e.stopPropagation();
     };
     
     const hideInstructions = () => {
       setShowInstructions(false);
     };
     
-    // Add touch event handlers to the container
+    // Add touch event handlers to the container only
     container.addEventListener('touchstart', preventTouchDefault, { passive: false });
     container.addEventListener('touchmove', preventTouchDefault, { passive: false });
     container.addEventListener('touchend', preventTouchDefault, { passive: false });
     container.addEventListener('touchstart', hideInstructions, { once: true });
-    
-    // Also prevent scrolling on the document body
-    document.body.style.overflow = 'hidden';
     
     return () => {
       container.removeEventListener('touchstart', preventTouchDefault);
       container.removeEventListener('touchmove', preventTouchDefault);
       container.removeEventListener('touchend', preventTouchDefault);
       container.removeEventListener('touchstart', hideInstructions);
-      document.body.style.overflow = '';
     };
   }, [containerRef.current]);
   
