@@ -7,5 +7,15 @@ export default defineConfig({
   optimizeDeps: {
     include: ['jwt-decode']
   },
-  assetsInclude: ['**/*.glb']
+  assetsInclude: ['**/*.glb'],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://appkonveksimax.onrender.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  }
 })
