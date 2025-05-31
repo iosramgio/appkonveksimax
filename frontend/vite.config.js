@@ -8,7 +8,7 @@ export default defineConfig({
   optimizeDeps: {
     include: ['jwt-decode']
   },
-  assetsInclude: ['**/*.glb', '**/*.png'],
+  assetsInclude: ['**/*.glb', '**/*.ico'],
   build: {
     rollupOptions: {
       input: {
