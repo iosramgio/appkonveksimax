@@ -178,39 +178,49 @@ const OrderDetail = () => {
     try {
       setPaymentLoading(true);
       
+      // Default ke full payment
       let paymentType = 'fullPayment';
-      let amountToPay = order.paymentDetails.total; // Default ke total keseluruhan
+      let amountToPay = order.paymentDetails.total;
       
-      // Check if this is a pending payment that needs to be completed
-      const hasPendingFullPayment = payments && payments.some(payment => 
-        payment.status === 'pending' && payment.paymentType === 'fullPayment'
-      );
+      // Cek apakah ada riwayat pembayaran sebelumnya
+      const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'expired');
       
-      // Log payment information for debugging
+      // Cek jenis pembayaran yang dipilih sebelumnya (full atau DP)
+      const hasPendingFullPayment = pendingPayments.some(p => p.paymentType === 'fullPayment');
+      const hasPendingDPPayment = pendingPayments.some(p => p.paymentType === 'downPayment');
+      
+      // Log untuk debugging
       console.log('Current payments:', payments);
+      console.log('Pending payments:', pendingPayments);
       console.log('Has pending full payment:', hasPendingFullPayment);
+      console.log('Has pending DP payment:', hasPendingDPPayment);
       console.log('DP status:', order.paymentDetails.downPayment?.status);
       console.log('DP required:', order.paymentDetails.downPayment?.required);
       
-      // If DP is already paid, this must be a remaining payment
+      // Jika DP sudah dibayar, ini adalah pembayaran sisa
       if (order.paymentDetails.downPayment?.status === 'paid' && !order.paymentDetails.isPaid) {
         paymentType = 'remainingPayment';
         amountToPay = order.paymentDetails.remainingPayment.amount;
       } 
-      // If there's a pending full payment, keep it as full payment
+      // Jika ada pembayaran penuh tertunda, tetap gunakan pembayaran penuh
       else if (hasPendingFullPayment) {
         paymentType = 'fullPayment';
         amountToPay = order.paymentDetails.total;
       }
-      // If DP is required and not paid yet, and no pending full payment exists
-      else if (order.paymentDetails.downPayment?.required && 
-               order.paymentDetails.downPayment?.status !== 'paid' && 
-               order.paymentDetails.downPayment?.amount > 0 &&
-               !hasPendingFullPayment) {
+      // Jika ada pembayaran DP tertunda, tetap gunakan pembayaran DP
+      else if (hasPendingDPPayment) {
         paymentType = 'downPayment';
         amountToPay = order.paymentDetails.downPayment.amount;
       }
-      // Otherwise, it's a full payment
+      // Jika DP diperlukan dan belum dibayar, dan tidak ada pembayaran tertunda
+      else if (order.paymentDetails.downPayment?.required && 
+               order.paymentDetails.downPayment?.status !== 'paid' && 
+               order.paymentDetails.downPayment?.amount > 0 &&
+               pendingPayments.length === 0) {
+        paymentType = 'downPayment';
+        amountToPay = order.paymentDetails.downPayment.amount;
+      }
+      // Selain itu, ini adalah pembayaran penuh
       else {
         paymentType = 'fullPayment';
         amountToPay = order.paymentDetails.total;
@@ -229,7 +239,8 @@ const OrderDetail = () => {
         orderId: order._id,
         paymentType,
         amount: amountToPay,
-        isPendingContinuation: hasPendingFullPayment
+        isPendingContinuation: pendingPayments.length > 0,
+        originalPaymentType: pendingPayments.length > 0 ? pendingPayments[0].paymentType : paymentType
       });
       
       if (!response.data || !response.data.token) {
@@ -854,14 +865,34 @@ const OrderDetail = () => {
                         variant="primary"
                       >
                         {paymentLoading ? 'Memproses...' : 
-                          // Jika ada pembayaran penuh tertunda
-                          (payments && payments.some(p => p.status === 'pending' && p.paymentType === 'fullPayment')) ?
-                          `Lanjutkan Pembayaran Penuh (${formatCurrency(orderTotal)})` :
-                          // Jika DP diperlukan dan belum dibayar dan tidak ada pembayaran penuh tertunda
-                          (paymentInfo.downPayment?.required && paymentInfo.downPayment?.amount > 0 && downPaymentStatus !== 'paid' && 
-                           !payments?.some(p => p.status === 'pending' && p.paymentType === 'fullPayment')) ? 
-                          `Bayar DP (${formatCurrency(downPaymentAmount)})` : 
-                          `Bayar Sekarang (${formatCurrency(orderTotal)})`}
+                          // Cek jenis pembayaran yang tertunda
+                          (() => {
+                            // Cek pembayaran tertunda
+                            const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'expired');
+                            const hasPendingFullPayment = pendingPayments.some(p => p.paymentType === 'fullPayment');
+                            const hasPendingDPPayment = pendingPayments.some(p => p.paymentType === 'downPayment');
+                            
+                            // Jika ada pembayaran penuh tertunda
+                            if (hasPendingFullPayment) {
+                              return `Lanjutkan Pembayaran Penuh (${formatCurrency(orderTotal)})`;
+                            }
+                            // Jika ada pembayaran DP tertunda
+                            else if (hasPendingDPPayment) {
+                              return `Lanjutkan Pembayaran DP (${formatCurrency(downPaymentAmount)})`;
+                            }
+                            // Jika DP diperlukan dan belum dibayar dan tidak ada pembayaran tertunda
+                            else if (paymentInfo.downPayment?.required && 
+                                    paymentInfo.downPayment?.amount > 0 && 
+                                    downPaymentStatus !== 'paid' && 
+                                    pendingPayments.length === 0) {
+                              return `Bayar DP (${formatCurrency(downPaymentAmount)})`;
+                            }
+                            // Default: pembayaran penuh
+                            else {
+                              return `Bayar Sekarang (${formatCurrency(orderTotal)})`;
+                            }
+                          })()
+                        }
                       </Button>
                     )}
                   </div>
