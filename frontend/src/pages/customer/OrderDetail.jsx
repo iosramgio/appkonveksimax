@@ -10,11 +10,11 @@ import { calculatePricePerUnit, calculateDetailSubtotal, calculateCustomDesignFe
 import OrderItemCard from '../../components/orders/OrderItemCard';
 import { getMidtransConfig } from '../../api/payments';
 
-const OrderStatusSteps = ({ currentStatus }) => {
+const OrderStatusSteps = ({ currentStatus, verificationStatus }) => {
   const statuses = ['Pesanan Diterima', 'Diproses', 'Selesai Produksi', 'Siap Kirim', 'Selesai'];
   
   // Handle rejected orders separately
-  if (currentStatus === 'Ditolak') {
+  if (currentStatus === 'Ditolak' || verificationStatus === 'Ditolak') {
     return (
       <div className="py-6">
         <div className="flex items-center justify-center">
@@ -22,7 +22,9 @@ const OrderStatusSteps = ({ currentStatus }) => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="font-medium">Pesanan Anda telah ditolak</span>
+            <span className="font-medium">
+              {currentStatus === 'Ditolak' ? 'Pesanan Anda telah ditolak' : 'Pesanan Anda tidak diverifikasi'}
+            </span>
           </div>
         </div>
       </div>
@@ -477,35 +479,33 @@ const OrderDetail = () => {
         {/* === AKHIR PENAMBAHAN CATATAN VERIFIKASI === */}
 
         {/* Order Progress */}
-        {['Pesanan Diterima', 'Diproses', 'Selesai Produksi', 'Siap Kirim', 'Selesai'].includes(order.status) && (
-          <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">
-            <OrderStatusSteps currentStatus={order.status} />
-            {/* === AWAL PENAMBAHAN INFO STATUS HISTORY === */}
-            {order.statusHistory && order.statusHistory.length > 0 && (
-              (() => {
-                const latestStatusEntry = order.statusHistory[order.statusHistory.length - 1];
-                if (latestStatusEntry && latestStatusEntry.notes) { // Hanya tampilkan jika ada catatan
-                  return (
-                    <div className="mt-3 text-center text-xs text-gray-600 bg-gray-50 p-2 rounded-md border border-gray-100">
-                      <p className="italic">"{latestStatusEntry.notes}"</p>
-                      <p className="mt-1 text-gray-500">({formatDate(latestStatusEntry.timestamp)})</p>
-                    </div>
-                  );
-                }
-                // Jika tidak ada notes pada entri terakhir, mungkin tampilkan tanggal perubahan status saja
-                else if (latestStatusEntry) {
-                     return (
-                        <div className="mt-3 text-center text-xs text-gray-500">
-                            <p>Status terakhir diperbarui pada: {formatDate(latestStatusEntry.timestamp)}</p>
-                        </div>
-                     );
-                }
-                return null;
-              })()
-            )}
-            {/* === AKHIR PENAMBAHAN INFO STATUS HISTORY === */}
-          </div>
-        )}
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">
+          <OrderStatusSteps currentStatus={order.status} verificationStatus={order.verificationStatus} />
+          {/* === AWAL PENAMBAHAN INFO STATUS HISTORY === */}
+          {order.statusHistory && order.statusHistory.length > 0 && (
+            (() => {
+              const latestStatusEntry = order.statusHistory[order.statusHistory.length - 1];
+              if (latestStatusEntry && latestStatusEntry.notes) { // Hanya tampilkan jika ada catatan
+                return (
+                  <div className="mt-3 text-center text-xs text-gray-600 bg-gray-50 p-2 rounded-md border border-gray-100">
+                    <p className="italic">"{latestStatusEntry.notes}"</p>
+                    <p className="mt-1 text-gray-500">({formatDate(latestStatusEntry.timestamp)})</p>
+                  </div>
+                );
+              }
+              // Jika tidak ada notes pada entri terakhir, mungkin tampilkan tanggal perubahan status saja
+              else if (latestStatusEntry) {
+                   return (
+                      <div className="mt-3 text-center text-xs text-gray-500">
+                          <p>Status terakhir diperbarui pada: {formatDate(latestStatusEntry.timestamp)}</p>
+                      </div>
+                   );
+              }
+              return null;
+            })()
+          )}
+          {/* === AKHIR PENAMBAHAN INFO STATUS HISTORY === */}
+        </div>
       </div>
       
       {/* Main Content - 2 Columns */}
@@ -801,7 +801,7 @@ const OrderDetail = () => {
                 {/* === AKHIR BLOK DETAIL PEMBAYARAN BARU === */}
                 
                 {/* Tombol Aksi Pembayaran */}
-                {!isPaid && order.status !== 'Ditolak' && (
+                {!isPaid && order.status !== 'Ditolak' && order.verificationStatus !== 'Ditolak' && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     {downPaymentStatus === 'paid' ? (
                       // Jika DP sudah dibayar, tampilkan tombol Lunasi Sisa Pembayaran
@@ -832,7 +832,7 @@ const OrderDetail = () => {
                 )}
                 
                 {/* Pesan untuk pesanan yang ditolak */}
-                {order.status === 'Ditolak' && (
+                {(order.status === 'Ditolak' || order.verificationStatus === 'Ditolak') && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <div className="bg-red-50 border border-red-100 rounded-md p-3 flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-red-500" viewBox="0 0 20 20" fill="currentColor">
