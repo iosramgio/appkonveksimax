@@ -9,7 +9,7 @@ import { useApi } from '../../hooks/useApi';
 import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
 import { calculatePrice, calculatePriceBreakdown } from '../../utils/pricingCalculator';
-import { getProductById } from '../../api/products';
+import { getProductById, uploadDesign } from '../../api/products';
 import axios from 'axios';
 
 const PriceDetails = ({ priceDetails, customDesign }) => {
@@ -536,29 +536,25 @@ const ProductDetail = () => {
         return;
       }
 
-      // Upload file to server/cloudinary first
-      const formData = new FormData();
-      formData.append('file', designData.file);
-      
-      // Ambil token dari sessionStorage
-      const token = sessionStorage.getItem('token');
-      
-      const response = await api.post('/products/upload-design', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
-        },
-        withCredentials: true
+      // Use the uploadDesign function from the products API
+      const { success, data, error } = await uploadDesign(designData.file, {
+        notes: designData.notes || ''
+      }, (progress) => {
+        console.log('Upload progress:', progress);
       });
       
-      if (response.data && response.data.url) {
+      if (!success) {
+        throw new Error(error || 'Failed to upload design');
+      }
+      
+      if (data && data.url) {
         // Save the design data with cloudinary URL
         const customizationFee = product?.customizationFee || 0;
         
         setCustomDesign({
           ...designData,
-          url: response.data.url,
-          designUrl: response.data.url, // For backward compatibility
+          url: data.url,
+          designUrl: data.url, // For backward compatibility
           isCustom: true,
           customizationFee: customizationFee
         });

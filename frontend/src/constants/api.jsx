@@ -14,9 +14,11 @@ export const USER_PROFILE = '/users/profile';
 
 // Product endpoints
 export const PRODUCTS = '/products';
+export const PRODUCT_BY_ID = (id) => `/products/${id}`;
 export const PRODUCT_CATEGORIES = '/products/categories';
 export const PRODUCT_MATERIALS = '/materials';
 export const PRODUCT_COLORS = '/colors';
+export const PRODUCT_UPLOAD_DESIGN = '/products/upload-design';
 
 // Order endpoints
 export const ORDERS = '/orders';
@@ -61,9 +63,11 @@ export default {
   USERS,
   USER_PROFILE,
   PRODUCTS,
+  PRODUCT_BY_ID,
   PRODUCT_CATEGORIES,
   PRODUCT_MATERIALS,
   PRODUCT_COLORS,
+  PRODUCT_UPLOAD_DESIGN,
   ORDERS,
   ORDERS_MANUAL,
   ORDERS_PRODUCTION,
