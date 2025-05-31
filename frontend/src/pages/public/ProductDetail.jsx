@@ -9,6 +9,7 @@ import { useApi } from '../../hooks/useApi';
 import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
 import { calculatePrice, calculatePriceBreakdown } from '../../utils/pricingCalculator';
+import { getProductById } from '../../api/products';
 import axios from 'axios';
 
 const PriceDetails = ({ priceDetails, customDesign }) => {
@@ -270,15 +271,18 @@ const ProductDetail = () => {
   const fetchProductDetail = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/products/${productId}`, {
-        withCredentials: false,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      // Replace direct axios call with API utility
+      const { success, data, error } = await getProductById(productId);
+      
+      if (!success) {
+        console.error('Error fetching product details:', error);
+        toast.error('Gagal mengambil detail produk');
+        setLoading(false);
+        return;
+      }
       
       // Periksa format respons dan ambil data produk
-      const productData = response.data.product || response.data;
+      const productData = data.product || data;
       
       console.log('Received product data:', productData);
       console.log('Product images:', productData.images);
@@ -300,14 +304,14 @@ const ProductDetail = () => {
       setTimeout(() => {
         updatePrice();
       }, 100);
-      } catch (error) {
+    } catch (error) {
       console.error('Error fetching product details:', error);
       toast.error('Gagal mengambil detail produk');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
     fetchProductDetail();
   }, [productId]);
@@ -539,7 +543,7 @@ const ProductDetail = () => {
       // Ambil token dari sessionStorage
       const token = sessionStorage.getItem('token');
       
-      const response = await axios.post('/api/products/upload-design', formData, {
+      const response = await api.post('/products/upload-design', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
