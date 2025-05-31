@@ -7,8 +7,9 @@ const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json'
   },
-  withCredentials: true,
+  withCredentials: true
 });
 
 // Request interceptor to add auth token to headers
@@ -31,9 +32,15 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    console.error('API Error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+
     // Handle 401 Unauthorized errors (expired or invalid token)
     if (error.response && error.response.status === 401) {
-      // Remove the token from localStorage
+      // Remove the token from sessionStorage
       removeToken();
       
       // Redirect to login page if not already there
