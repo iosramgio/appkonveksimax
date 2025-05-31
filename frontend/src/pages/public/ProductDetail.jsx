@@ -9,7 +9,6 @@ import { useApi } from '../../hooks/useApi';
 import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
 import { calculatePrice, calculatePriceBreakdown } from '../../utils/pricingCalculator';
-import { getProductById, uploadDesign } from '../../api/products';
 import axios from 'axios';
 
 const PriceDetails = ({ priceDetails, customDesign }) => {
@@ -271,18 +270,15 @@ const ProductDetail = () => {
   const fetchProductDetail = async () => {
     try {
       setLoading(true);
-      // Fixed API call to use proper utility function instead of direct axios call
-      const { success, data, error } = await getProductById(productId);
-      
-      if (!success) {
-        console.error('Error fetching product details:', error);
-        toast.error('Gagal mengambil detail produk');
-        setLoading(false);
-        return;
-      }
+      const response = await axios.get(`/api/products/${productId}`, {
+        withCredentials: false,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       // Periksa format respons dan ambil data produk
-      const productData = data.product || data;
+      const productData = response.data.product || response.data;
       
       console.log('Received product data:', productData);
       console.log('Product images:', productData.images);
@@ -304,14 +300,14 @@ const ProductDetail = () => {
       setTimeout(() => {
         updatePrice();
       }, 100);
-    } catch (error) {
+      } catch (error) {
       console.error('Error fetching product details:', error);
       toast.error('Gagal mengambil detail produk');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
+      } finally {
+        setLoading(false);
+      }
+    };
+    
   useEffect(() => {
     fetchProductDetail();
   }, [productId]);
@@ -536,25 +532,29 @@ const ProductDetail = () => {
         return;
       }
 
-      // Use the uploadDesign function from the products API
-      const { success, data, error } = await uploadDesign(designData.file, {
-        notes: designData.notes || ''
-      }, (progress) => {
-        console.log('Upload progress:', progress);
+      // Upload file to server/cloudinary first
+      const formData = new FormData();
+      formData.append('file', designData.file);
+      
+      // Ambil token dari sessionStorage
+      const token = sessionStorage.getItem('token');
+      
+      const response = await axios.post('/api/products/upload-design', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        },
+        withCredentials: true
       });
       
-      if (!success) {
-        throw new Error(error || 'Failed to upload design');
-      }
-      
-      if (data && data.url) {
+      if (response.data && response.data.url) {
         // Save the design data with cloudinary URL
         const customizationFee = product?.customizationFee || 0;
         
         setCustomDesign({
           ...designData,
-          url: data.url,
-          designUrl: data.url, // For backward compatibility
+          url: response.data.url,
+          designUrl: response.data.url, // For backward compatibility
           isCustom: true,
           customizationFee: customizationFee
         });
