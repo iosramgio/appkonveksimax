@@ -9,7 +9,6 @@ import { useNotification } from '../../hooks/useNotification';
 import { formatCurrency } from '../../utils/formatter';
 import { calculatePriceBreakdown, calculateDeposit } from '../../utils/pricingCalculator';
 import { useNavigate } from 'react-router-dom';
-import CustomerSearchModal from '../modals/CustomerSearchModal';
 
 const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineOrder = false }) => {
   const [products, setProducts] = useState([]);
@@ -22,8 +21,6 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
   const [dpAmount, setDpAmount] = useState(0);
   const [dpPercentage, setDpPercentage] = useState(30);
   const [loading, setLoading] = useState(false);
-  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [cashReceived, setCashReceived] = useState(0);
   const [changeAmount, setChangeAmount] = useState(0);
   const [receiptNumber, setReceiptNumber] = useState('');
@@ -173,13 +170,11 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
     const errors = {};
     
     // Pastikan nama dan telepon pelanggan diisi dengan benar
-    if (!selectedCustomer) {
-      if (!formData.customerName.trim()) {
-        errors.customerName = 'Nama pelanggan wajib diisi';
-      }
-      if (!formData.customerPhone.trim()) {
-        errors.customerPhone = 'Nomor telepon pelanggan wajib diisi';
-      }
+    if (!formData.customerName.trim()) {
+      errors.customerName = 'Nama pelanggan wajib diisi';
+    }
+    if (!formData.customerPhone.trim()) {
+      errors.customerPhone = 'Nomor telepon pelanggan wajib diisi';
     }
 
     if (!formData.paymentMethod) errors.paymentMethod = 'Pilih metode pembayaran';
@@ -223,9 +218,9 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
       showNotification('Mohon lengkapi semua field yang wajib diisi', 'error');
       return;
     }
-
+    
     // Additional validation for customer data
-    if (!selectedCustomer && (!formData.customerName.trim() || !formData.customerPhone.trim())) {
+    if (!formData.customerName.trim() || !formData.customerPhone.trim()) {
       setFormErrors({
         ...errors,
         customerName: !formData.customerName.trim() ? 'Nama pelanggan wajib diisi' : '',
@@ -281,28 +276,14 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
       }
 
       // Log data customer untuk debugging
-      console.log("Data customer yang akan dikirim:", selectedCustomer 
-        ? { _id: selectedCustomer._id } 
-        : { name: formData.customerName.trim(), phone: formData.customerPhone.trim(), email: `${formData.customerPhone.trim()}@offline.customer` });
-
-      // Ensure customer data is valid
-      const customerData = selectedCustomer 
-        ? { _id: selectedCustomer._id } 
-        : { 
-            name: formData.customerName.trim(), 
-            phone: formData.customerPhone.trim(), 
-            email: `${formData.customerPhone.trim()}@offline.customer` 
-          };
-          
-      // Validate customer data again before creating the order object
-      if (!selectedCustomer && (!customerData.name || !customerData.phone)) {
-        showNotification('Nama dan nomor telepon pelanggan wajib diisi', 'error');
-        setLoading(false);
-        return;
-      }
+      console.log("Data customer yang akan dikirim:", { name: formData.customerName.trim(), phone: formData.customerPhone.trim(), email: `${formData.customerPhone.trim()}@offline.customer` });
 
       const orderDataForBackend = {
-        customer: customerData,
+        customer: {
+          name: formData.customerName.trim(),
+          phone: formData.customerPhone.trim(),
+          email: `${formData.customerPhone.trim()}@offline.customer`
+        },
         items: itemsForBackend,
         shippingAddress: formData.deliveryMethod === 'Dikirim' 
           ? {
@@ -354,21 +335,6 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCustomerSelect = (customer) => {
-    setSelectedCustomer(customer);
-    setFormData(prev => ({
-      ...prev,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      deliveryAddress: customer.address?.street || '',
-      deliveryCity: customer.address?.city || '',
-      deliveryProvince: customer.address?.province || '',
-      deliveryDistrict: customer.address?.district || '',
-      deliveryPostalCode: customer.address?.postalCode || '',
-    }));
-    setShowCustomerSearch(false);
   };
 
   const handleProductChange = async (e) => {
@@ -817,47 +783,8 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
       <form onSubmit={handleSubmit}>
         <FormSection 
           title="Informasi Pelanggan" 
-          subtitle="Masukkan data pelanggan atau cari pelanggan yang sudah terdaftar"
+          subtitle="Masukkan data pelanggan baru"
         >
-          <div className="bg-gray-50 p-4 rounded-md mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <Button
-              type="button"
-              label="Cari Pelanggan Terdaftar"
-              variant="secondary"
-              onClick={() => setShowCustomerSearch(true)}
-              icon={
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                </svg>
-              }
-              className="w-full sm:w-auto"
-            />
-            {selectedCustomer ? (
-              <div className="bg-green-50 border border-green-200 p-3 rounded-md w-full sm:flex-1">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-green-800">{selectedCustomer.name}</div>
-                    <div className="text-sm text-green-600">{selectedCustomer.phone}</div>
-                    {selectedCustomer.address?.street && (
-                      <div className="text-xs text-green-600 mt-1">{selectedCustomer.address.street}</div>
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    label="Ganti"
-                    onClick={() => setShowCustomerSearch(true)}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-gray-600 italic flex-1">
-                Atau isi data pelanggan baru di bawah ini
-              </div>
-            )}
-          </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputField
               label="Nama Pelanggan"
@@ -867,7 +794,7 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
               error={formErrors.customerName}
               required
               placeholder="Masukkan nama pelanggan"
-              disabled={!!selectedCustomer}
+              disabled={false}
             />
             <InputField
               label="No. Telepon"
@@ -877,7 +804,7 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
               error={formErrors.customerPhone}
               required
               placeholder="Contoh: 081234567890"
-              disabled={!!selectedCustomer}
+              disabled={false}
             />
           </div>
         </FormSection>
@@ -1521,14 +1448,6 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
           />
         </div>
       </form>
-
-      {showCustomerSearch && (
-        <CustomerSearchModal
-          isOpen={showCustomerSearch}
-          onClose={() => setShowCustomerSearch(false)}
-          onSelect={handleCustomerSelect}
-        />
-      )}
 
       {showFileUpload && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
