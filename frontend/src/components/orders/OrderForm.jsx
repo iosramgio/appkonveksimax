@@ -180,9 +180,6 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
       if (!formData.customerPhone.trim()) {
         errors.customerPhone = 'Nomor telepon pelanggan wajib diisi';
       }
-      if (!formData.customerName.trim() || !formData.customerPhone.trim()) {
-      errors.customer = 'Informasi pelanggan wajib diisi';
-    }
     }
 
     if (!formData.paymentMethod) errors.paymentMethod = 'Pilih metode pembayaran';
@@ -191,8 +188,8 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
     
     if (formData.deliveryMethod === 'Dikirim') {
       if (!formData.deliveryAddress) {
-      errors.deliveryAddress = 'Alamat pengiriman wajib diisi';
-    }
+        errors.deliveryAddress = 'Alamat pengiriman wajib diisi';
+      }
       if (!formData.deliveryCity) {
         errors.deliveryCity = 'Kota/Kabupaten wajib diisi';
       }
@@ -224,6 +221,17 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
 
     if (Object.keys(errors).length > 0) {
       showNotification('Mohon lengkapi semua field yang wajib diisi', 'error');
+      return;
+    }
+
+    // Additional validation for customer data
+    if (!selectedCustomer && (!formData.customerName.trim() || !formData.customerPhone.trim())) {
+      setFormErrors({
+        ...errors,
+        customerName: !formData.customerName.trim() ? 'Nama pelanggan wajib diisi' : '',
+        customerPhone: !formData.customerPhone.trim() ? 'Nomor telepon pelanggan wajib diisi' : ''
+      });
+      showNotification('Data pelanggan tidak lengkap. Nama dan nomor telepon wajib diisi.', 'error');
       return;
     }
 
@@ -277,14 +285,24 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
         ? { _id: selectedCustomer._id } 
         : { name: formData.customerName.trim(), phone: formData.customerPhone.trim(), email: `${formData.customerPhone.trim()}@offline.customer` });
 
+      // Ensure customer data is valid
+      const customerData = selectedCustomer 
+        ? { _id: selectedCustomer._id } 
+        : { 
+            name: formData.customerName.trim(), 
+            phone: formData.customerPhone.trim(), 
+            email: `${formData.customerPhone.trim()}@offline.customer` 
+          };
+          
+      // Validate customer data again before creating the order object
+      if (!selectedCustomer && (!customerData.name || !customerData.phone)) {
+        showNotification('Nama dan nomor telepon pelanggan wajib diisi', 'error');
+        setLoading(false);
+        return;
+      }
+
       const orderDataForBackend = {
-        customer: selectedCustomer 
-          ? { _id: selectedCustomer._id } 
-          : { 
-              name: formData.customerName.trim(), 
-              phone: formData.customerPhone.trim(), 
-              email: `${formData.customerPhone.trim()}@offline.customer` 
-            },
+        customer: customerData,
         items: itemsForBackend,
         shippingAddress: formData.deliveryMethod === 'Dikirim' 
           ? {
@@ -846,7 +864,7 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
               name="customerName"
               value={formData.customerName}
               onChange={handleChange}
-              error={formErrors.customer}
+              error={formErrors.customerName}
               required
               placeholder="Masukkan nama pelanggan"
               disabled={!!selectedCustomer}
@@ -856,7 +874,7 @@ const OrderForm = ({ onSubmit, isEditing = false, initialData = null, isOfflineO
               name="customerPhone"
               value={formData.customerPhone}
               onChange={handleChange}
-              error={formErrors.customer}
+              error={formErrors.customerPhone}
               required
               placeholder="Contoh: 081234567890"
               disabled={!!selectedCustomer}
