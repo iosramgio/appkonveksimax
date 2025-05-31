@@ -607,7 +607,7 @@ const OrderDetail = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                Detail Pengiriman
+                {order.pickupInStore ? 'Detail Pengambilan' : 'Detail Pengiriman'}
               </h2>
             </div>
             
@@ -621,16 +621,39 @@ const OrderDetail = () => {
                 
                 {/* Shipping Info */}
                 <div>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Alamat Pengiriman</h3>
-                  <div className="text-sm text-gray-700 space-y-1">
-                    <p><span className="font-medium">Jalan:</span> {order.shippingAddress?.street || '-'}</p>
-                    {order.shippingAddress?.district && (
-                      <p><span className="font-medium">Kecamatan/Kelurahan:</span> {order.shippingAddress.district}</p>
-                    )}
-                    <p><span className="font-medium">Kota/Kabupaten:</span> {order.shippingAddress?.city || '-'}</p>
-                    <p><span className="font-medium">Provinsi:</span> {order.shippingAddress?.province || '-'}</p>
-                    <p><span className="font-medium">Kode Pos:</span> {order.shippingAddress?.postalCode || '-'}</p>
-                  </div>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-2">
+                    {order.pickupInStore ? 'Alamat Pengambilan' : 'Alamat Pengiriman'}
+                  </h3>
+                  
+                  {order.pickupInStore ? (
+                    <div className="text-sm text-gray-700 space-y-1">
+                      <div className="bg-green-50 border border-green-100 rounded-md p-3">
+                        <div className="flex items-start">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-green-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" />
+                          </svg>
+                          <div>
+                            <p className="font-medium text-green-800">Ambil di Toko</p>
+                            <p className="text-green-700 mt-1">Jl. Pahlawan No. 123, Kota Surabaya</p>
+                            <p className="text-green-700">Jam Operasional: 08.00 - 17.00 WIB (Senin - Sabtu)</p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Silakan tunjukkan bukti pemesanan saat mengambil pesanan di toko.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-700 space-y-1">
+                      <p><span className="font-medium">Jalan:</span> {order.shippingAddress?.street || '-'}</p>
+                      {order.shippingAddress?.district && (
+                        <p><span className="font-medium">Kecamatan/Kelurahan:</span> {order.shippingAddress.district}</p>
+                      )}
+                      <p><span className="font-medium">Kota/Kabupaten:</span> {order.shippingAddress?.city || '-'}</p>
+                      <p><span className="font-medium">Provinsi:</span> {order.shippingAddress?.province || '-'}</p>
+                      <p><span className="font-medium">Kode Pos:</span> {order.shippingAddress?.postalCode || '-'}</p>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -740,10 +763,18 @@ const OrderDetail = () => {
                 )}
                 
                 {/* Shipping cost */}
-                {orderShippingCost > 0 && (
+                {orderShippingCost > 0 && !order.pickupInStore && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Biaya Pengiriman:</span>
                     <span className="font-medium">{formatCurrency(orderShippingCost)}</span>
+                  </div>
+                )}
+                
+                {/* Pickup in store info */}
+                {order.pickupInStore && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Pengambilan di Toko:</span>
+                    <span className="font-medium">Gratis</span>
                   </div>
                 )}
                 
