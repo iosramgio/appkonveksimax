@@ -253,13 +253,14 @@ const ProductionOrderList = ({ orders, onStatusChange, loading }) => {
                                     
                                     <div className="flex flex-wrap items-start gap-3">
                                       {/* Custom Design Image */}
-                                      {item.customDesign.designUrl && (
+                                      {(item.customDesign.designUrl || item.customDesign.url) && (
                                         <div className="flex-shrink-0">
                                           <img 
-                                            src={item.customDesign.designUrl} 
+                                            src={item.customDesign.designUrl || item.customDesign.url} 
                                             alt="Custom Design" 
                                             className="h-24 w-auto max-w-[120px] object-contain border border-gray-200 rounded-md bg-white p-1"
                                             onError={(e) => { 
+                                              console.log('Failed to load design image:', item.customDesign.designUrl || item.customDesign.url);
                                               e.target.src = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22100%22 height%3D%22100%22 viewBox%3D%220 0 100 100%22%3E%3Crect width%3D%22100%22 height%3D%22100%22 fill%3D%22%23f1f5f9%22%2F%3E%3Ctext x%3D%2250%22 y%3D%2250%22 font-family%3D%22Arial%22 font-size%3D%2212%22 text-anchor%3D%22middle%22 dominant-baseline%3D%22middle%22 fill%3D%22%2364748b%22%3ENo Image%3C%2Ftext%3E%3C%2Fsvg%3E';
                                             }}
                                           />
