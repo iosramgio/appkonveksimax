@@ -83,13 +83,16 @@ const About = () => {
                 <div className="absolute -top-6 -left-6 w-64 h-64 border-2 border-[#620000] rounded-lg"></div>
                 <div className="relative rounded-lg overflow-hidden shadow-2xl">
                 <video
-                  src="/assets/video/produksi2.mp4"
-                  alt="Our production process"
                   className="w-full h-auto object-cover"
-                  loop
                   autoPlay
+                  loop
                   muted
-                />
+                  playsInline
+                  poster="/assets/images/MaxHero.png"
+                >
+                  <source src="/assets/video/produksi1.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
                 </div>
               </div>
             </div>
