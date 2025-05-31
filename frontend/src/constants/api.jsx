@@ -1,5 +1,5 @@
 // Base API URL
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const API_URL = import.meta.env.VITE_API_URL || 'https://appkonveksimax.onrender.com/api';
 
 // Auth endpoints
 export const AUTH_LOGIN = '/auth/login';

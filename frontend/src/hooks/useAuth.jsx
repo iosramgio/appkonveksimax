@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://appkonveksimax.onrender.com/api';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
