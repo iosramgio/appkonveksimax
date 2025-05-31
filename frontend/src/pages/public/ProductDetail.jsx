@@ -535,12 +535,11 @@ const ProductDetail = () => {
       // Ambil token dari sessionStorage
       const token = sessionStorage.getItem('token');
       
-      const response = await axios.post('/api/products/upload-design', formData, {
+      // Fix: Use the correct API endpoint for file uploads
+      const response = await api.post('/files/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
-        },
-        withCredentials: true
+        }
       });
       
       if (response.data && response.data.url) {
