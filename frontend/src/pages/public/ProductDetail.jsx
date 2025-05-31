@@ -546,13 +546,22 @@ const ProductDetail = () => {
         // Save the design data with cloudinary URL
         const customizationFee = product?.customizationFee || 0;
         
+        // Make sure the URL is properly formatted with the API base URL if it's a relative path
+        let designUrl = response.data.url;
+        if (designUrl && designUrl.startsWith('/')) {
+          const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://appkonveksimax.onrender.com';
+          designUrl = `${apiBaseUrl}${designUrl}`;
+        }
+        
         setCustomDesign({
           ...designData,
-          url: response.data.url,
-          designUrl: response.data.url, // For backward compatibility
+          url: designUrl,
+          designUrl: designUrl, // For backward compatibility
           isCustom: true,
           customizationFee: customizationFee
         });
+        
+        console.log('Design uploaded successfully:', designUrl);
       } else {
         throw new Error('Failed to get upload URL');
       }
@@ -670,10 +679,19 @@ const ProductDetail = () => {
       if (customDesign) {
         customDesignForCart = {
           url: customDesign.url || '',
-          designUrl: customDesign.designUrl || customDesign.url || '',
+          designUrl: customDesign.url || '', // Use url as the main source
           notes: customDesign.notes || '',
           customizationFee: product.customizationFee
         };
+        
+        // Make sure the URL is properly formatted with the API base URL if it's a relative path
+        if (customDesignForCart.url && customDesignForCart.url.startsWith('/')) {
+          const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://appkonveksimax.onrender.com';
+          customDesignForCart.url = `${apiBaseUrl}${customDesignForCart.url}`;
+          customDesignForCart.designUrl = customDesignForCart.url;
+        }
+        
+        console.log('Custom design for cart:', customDesignForCart);
       }
 
       const cartItem = {
