@@ -305,7 +305,7 @@ const Products = () => {
                     Dapatkan penawaran khusus untuk pesanan dalam jumlah besar
                   </p>
                   <a 
-                    href="https://wa.me/6289602865414"
+                    href="https://wa.me/6288214606269"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center px-4 py-2 bg-white text-[#620000] rounded-lg text-sm font-medium hover:bg-white/90 transition-colors relative"
@@ -494,7 +494,7 @@ const Products = () => {
             </div>
             <div className="md:flex-shrink-0 flex justify-center">
               <a
-                href="https://wa.me/6289602865414"
+                href="https://wa.me/6288214606269"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center whitespace-nowrap bg-white text-[#620000] px-8 py-4 rounded-xl font-medium hover:bg-gray-50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#FFFFFF]/10"
