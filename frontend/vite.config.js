@@ -7,14 +7,5 @@ export default defineConfig({
   optimizeDeps: {
     include: ['jwt-decode']
   },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-        secure: false,
-      }
-    }
-  },
   assetsInclude: ['**/*.glb']
 })
