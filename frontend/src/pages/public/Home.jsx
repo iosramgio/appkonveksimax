@@ -44,12 +44,7 @@ const Home = () => {
   ];
   
   useEffect(() => {
-    // Initialize AOS
-    AOS.init({
-      duration: 1000,
-      once: true,
-      offset: 100
-    });
+    // Remove AOS initialization from here since it's now handled globally
     
     const fetchHomeData = async () => {
       setLoading(true);

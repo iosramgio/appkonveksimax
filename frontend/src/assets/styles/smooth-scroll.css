@@ -1,0 +1,78 @@
+/**
+ * Smooth Scrolling Optimizations
+ */
+
+/* Apply smooth scrolling to all elements */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optimize rendering performance */
+body {
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimize scrolling performance */
+* {
+  -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
+  backface-visibility: hidden; /* Reduce paint during scroll */
+}
+
+/* Optimize animations */
+.aos-animate {
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Reduce layout shifts */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Optimize fixed elements during scroll */
+.fixed-element {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Optimize background images for scrolling */
+.bg-image {
+  background-attachment: scroll !important; /* Better than fixed for performance */
+}
+
+/* Improve scrolling performance on mobile */
+@media (max-width: 768px) {
+  .aos-animate {
+    transition-duration: 0.5s !important; /* Faster animations on mobile */
+  }
+  
+  /* Disable parallax effects on mobile for better performance */
+  [data-aos] {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Improve scrolling on older browsers */
+@supports not (scroll-behavior: smooth) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Add momentum-based scrolling for Safari */
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: scroll;
+}
+
+/* Optimize fixed position elements */
+.sticky-header, 
+.fixed-footer,
+.fixed-nav {
+  will-change: transform;
+  transform: translateZ(0);
+} 
