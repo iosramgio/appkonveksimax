@@ -72,6 +72,10 @@ const steps = [
 ];
 
 const CaraOrder = () => {
+  useEffect(() => {
+    AOS.init({ duration: 900, once: true, offset: 60 });
+  }, []);
+
   return (
     <div className="w-full max-w-5xl mx-auto">
       <div className="flex flex-col items-center">

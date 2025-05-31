@@ -5,6 +5,7 @@ import ProductFilter from '../../components/products/ProductFilter';
 import Button from '../../components/common/Button';
 import { useApi } from '../../hooks/useApi';
 import { useNotification } from '../../hooks/useNotification';
+import AOS from 'aos';
 import 'aos/dist/aos.css';
 
 const Products = () => {
@@ -24,7 +25,10 @@ const Products = () => {
   const { showNotification } = useNotification();
 
   useEffect(() => {
-    // Remove AOS initialization from here since it's now handled globally
+    AOS.init({
+      duration: 800,
+      once: true,
+    });
     
     // Parse query parameters from URL
     const queryParams = new URLSearchParams(location.search);
