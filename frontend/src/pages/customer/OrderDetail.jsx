@@ -749,79 +749,147 @@ const OrderDetail = () => {
                 
                 {/* === AWAL BLOK DETAIL PEMBAYARAN BARU === */}
                 {paymentInfo.downPayment && paymentInfo.downPayment.amount > 0 && (
-                  <>
-                    <div className="pt-3 mt-3 border-t border-gray-200">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Uang Muka (DP)</h4>
-                      <div className="space-y-1 text-xs">
-                        {paymentInfo.downPayment.percentage && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Persentase DP:</span>
-                            <span className="font-medium">{paymentInfo.downPayment.percentage}%</span>
+                  (() => {
+                    // Cek apakah ini adalah pembayaran penuh (full payment)
+                    const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'expired');
+                    const hasPendingFullPayment = pendingPayments.some(p => p.paymentType === 'fullPayment');
+                    
+                    // Jika ada pembayaran penuh tertunda, jangan tampilkan informasi DP
+                    if (hasPendingFullPayment) {
+                      return null;
+                    }
+                    
+                    // Jika tidak ada pembayaran tertunda, periksa jenis pembayaran
+                    // Jika ada pembayaran dan jenis pembayarannya fullPayment, jangan tampilkan DP
+                    if (payments && payments.length > 0) {
+                      const hasFullPayment = payments.some(p => p.paymentType === 'fullPayment');
+                      if (hasFullPayment && !paymentInfo.downPayment.required) {
+                        return null;
+                      }
+                    }
+                    
+                    // Jika bukan pembayaran penuh, tampilkan informasi DP
+                    return (
+                      <>
+                        <div className="pt-3 mt-3 border-t border-gray-200">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Uang Muka (DP)</h4>
+                          <div className="space-y-1 text-xs">
+                            {paymentInfo.downPayment.percentage && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Persentase DP:</span>
+                                <span className="font-medium">{paymentInfo.downPayment.percentage}%</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Jumlah DP:</span>
+                              <span className="font-medium">{formatCurrency(paymentInfo.downPayment.amount)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Status:</span>
+                              <span className={`font-medium ${paymentInfo.downPayment.status === 'paid' ? 'text-green-600' : 'text-yellow-600'}`}>
+                                {paymentInfo.downPayment.status === 'paid' ? 'Sudah Dibayar' : paymentInfo.downPayment.status === 'pending' ? 'Menunggu Pembayaran' : paymentInfo.downPayment.status || 'Belum Dibayar'}
+                              </span>
+                            </div>
+                            {paymentInfo.downPayment.paidAt && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Tanggal Pembayaran:</span>
+                                <span className="font-medium">{formatDate(paymentInfo.downPayment.paidAt)}</span>
+                              </div>
+                            )}
+                            {paymentInfo.downPayment.paymentMethod && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Metode Pembayaran:</span>
+                                <span className="font-medium">{paymentInfo.downPayment.paymentMethod}</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Jumlah DP:</span>
-                          <span className="font-medium">{formatCurrency(paymentInfo.downPayment.amount)}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Status:</span>
-                          <span className={`font-medium ${paymentInfo.downPayment.status === 'paid' ? 'text-green-600' : 'text-yellow-600'}`}>
-                            {paymentInfo.downPayment.status === 'paid' ? 'Sudah Dibayar' : paymentInfo.downPayment.status === 'pending' ? 'Menunggu Pembayaran' : paymentInfo.downPayment.status || 'Belum Dibayar'}
-                          </span>
-                        </div>
-                        {paymentInfo.downPayment.paidAt && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Tanggal Pembayaran:</span>
-                            <span className="font-medium">{formatDate(paymentInfo.downPayment.paidAt)}</span>
-                          </div>
-                        )}
-                        {paymentInfo.downPayment.paymentMethod && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Metode Pembayaran:</span>
-                            <span className="font-medium">{paymentInfo.downPayment.paymentMethod}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
+                      </>
+                    );
+                  })()
                 )}
 
                 {paymentInfo.remainingPayment && paymentInfo.remainingPayment.amount >= 0 && paymentInfo.downPayment?.status === 'paid' && (
-                  <>
-                    <div className="pt-3 mt-3 border-t border-gray-100">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Sisa Pembayaran</h4>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Jumlah:</span>
-                          <span className="font-medium">{formatCurrency(paymentInfo.remainingPayment.amount)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Status:</span>
-                          <span className={`font-medium ${paymentInfo.remainingPayment.status === 'paid' ? 'text-green-600' : paymentInfo.remainingPayment.status === 'pending' ? 'text-yellow-600' : 'text-red-600'}`}>
-                            {paymentInfo.remainingPayment.status === 'paid' ? 'Sudah Dibayar' : paymentInfo.remainingPayment.status === 'pending' ? 'Menunggu Pembayaran' : 'Belum Dibayar'}
-                          </span>
-                        </div>
-                        {paymentInfo.remainingPayment.paidAt && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Tanggal Pembayaran:</span>
-                            <span className="font-medium">{formatDate(paymentInfo.remainingPayment.paidAt)}</span>
+                  (() => {
+                    // Cek apakah ini adalah pembayaran penuh (full payment)
+                    const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'expired');
+                    const hasPendingFullPayment = pendingPayments.some(p => p.paymentType === 'fullPayment');
+                    
+                    // Jika ada pembayaran penuh tertunda, jangan tampilkan informasi sisa pembayaran
+                    if (hasPendingFullPayment) {
+                      return null;
+                    }
+                    
+                    // Jika tidak ada pembayaran tertunda, periksa jenis pembayaran
+                    if (payments && payments.length > 0) {
+                      const hasFullPayment = payments.some(p => p.paymentType === 'fullPayment');
+                      if (hasFullPayment && !paymentInfo.downPayment.required) {
+                        return null;
+                      }
+                    }
+                    
+                    // Jika bukan pembayaran penuh, tampilkan informasi sisa pembayaran
+                    return (
+                      <>
+                        <div className="pt-3 mt-3 border-t border-gray-100">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Sisa Pembayaran</h4>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Jumlah:</span>
+                              <span className="font-medium">{formatCurrency(paymentInfo.remainingPayment.amount)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Status:</span>
+                              <span className={`font-medium ${paymentInfo.remainingPayment.status === 'paid' ? 'text-green-600' : paymentInfo.remainingPayment.status === 'pending' ? 'text-yellow-600' : 'text-red-600'}`}>
+                                {paymentInfo.remainingPayment.status === 'paid' ? 'Sudah Dibayar' : paymentInfo.remainingPayment.status === 'pending' ? 'Menunggu Pembayaran' : 'Belum Dibayar'}
+                              </span>
+                            </div>
+                            {paymentInfo.remainingPayment.paidAt && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Tanggal Pembayaran:</span>
+                                <span className="font-medium">{formatDate(paymentInfo.remainingPayment.paidAt)}</span>
+                              </div>
+                            )}
+                            {paymentInfo.remainingPayment.paymentMethod && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Metode Pembayaran:</span>
+                                <span className="font-medium">{paymentInfo.remainingPayment.paymentMethod}</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {paymentInfo.remainingPayment.paymentMethod && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Metode Pembayaran:</span>
-                            <span className="font-medium">{paymentInfo.remainingPayment.paymentMethod}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
+                        </div>
+                      </>
+                    );
+                  })()
                 )}
 
                 {/* Garis Pemisah sebelum Total Keseluruhan jika ada detail DP/Sisa */}
-                {((paymentInfo.downPayment && paymentInfo.downPayment.amount > 0) || (paymentInfo.remainingPayment && paymentInfo.remainingPayment.amount >= 0 && paymentInfo.downPayment?.status === 'paid')) && 
-                <div className="border-t border-gray-200 my-2 pt-2"></div>
-                }
+                {(() => {
+                  // Cek apakah ini adalah pembayaran penuh (full payment)
+                  const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'expired');
+                  const hasPendingFullPayment = pendingPayments.some(p => p.paymentType === 'fullPayment');
+                  
+                  // Jika ada pembayaran penuh tertunda, jangan tampilkan garis pemisah
+                  if (hasPendingFullPayment) {
+                    return null;
+                  }
+                  
+                  // Jika tidak ada pembayaran tertunda, periksa jenis pembayaran
+                  if (payments && payments.length > 0) {
+                    const hasFullPayment = payments.some(p => p.paymentType === 'fullPayment');
+                    if (hasFullPayment && !paymentInfo.downPayment?.required) {
+                      return null;
+                    }
+                  }
+                  
+                  // Jika bukan pembayaran penuh dan ada detail DP/Sisa, tampilkan garis pemisah
+                  if ((paymentInfo.downPayment && paymentInfo.downPayment.amount > 0) || 
+                      (paymentInfo.remainingPayment && paymentInfo.remainingPayment.amount >= 0 && paymentInfo.downPayment?.status === 'paid')) {
+                    return <div className="border-t border-gray-200 my-2 pt-2"></div>;
+                  }
+                  
+                  return null;
+                })()}
                 
                 {/* Total Keseluruhan (sebelumnya Grand Total) */}
                 <div className="flex justify-between items-center text-lg font-bold pt-3 border-t border-gray-300">
