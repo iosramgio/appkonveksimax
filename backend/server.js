@@ -51,7 +51,7 @@ process.on('uncaughtException', (err) => {
 
 // Middleware
 app.use(cors({
-  origin: ["https://appkonveksimax.vercel.app", "http://localhost:5173", "https://www.maxsupply.id"],
+  origin: ["https://appkonveksimax.vercel.app", "http://localhost:5173", "https://www.maxsupply.id", "https://maxsupply.id"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
