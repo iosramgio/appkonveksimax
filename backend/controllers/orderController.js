@@ -822,6 +822,12 @@ const getAllOrders = async (req, res) => {
       }
     }
 
+    // Override filters if customer_id is provided in query and user has permission
+    if (req.query.customer_id && req.user.role !== "customer") {
+      filters.customer = req.query.customer_id;
+      console.log('Customer ID filter override:', filters.customer);
+    }
+
     // Log final filters
     console.log('Final query filters:', JSON.stringify(filters, null, 2));
 

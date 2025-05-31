@@ -54,16 +54,25 @@ const CustomerOrders = () => {
         'x-debug-role': user?.role || 'no-role'
       };
       
+      // Use a direct API call to ensure we're getting the right data
       const response = await api.get(`/orders?${queryParams.toString()}`, { headers });
       
       console.log('Orders response:', response.data);
-      setOrders(response.data.orders);
-      console.log("Orders.jsx - Raw orders from API:", JSON.stringify(response.data.orders, null, 2));
-      setTotalPages(response.data.pagination.pages);
-      setCurrentPage(response.data.pagination.page);
+      
+      // Make sure we're setting the orders properly
+      if (response.data && Array.isArray(response.data.orders)) {
+        setOrders(response.data.orders);
+        setTotalPages(response.data.pagination.pages);
+        setCurrentPage(response.data.pagination.page);
+      } else {
+        console.error('Invalid orders data format:', response.data);
+        showNotification('Format data pesanan tidak valid', 'error');
+        setOrders([]);
+      }
     } catch (error) {
       console.error('Error fetching orders:', error);
       showNotification('Gagal memuat daftar pesanan', 'error');
+      setOrders([]);
     } finally {
       setLoading(false);
     }

@@ -23,24 +23,41 @@ const OrderList = ({ orders = [], loading, onStatusChange, onPageChange, totalPa
   
   // Filter orders based on current user
   useEffect(() => {
-    if (isCustomer && user?._id && orders.length > 0) {
-      // Filter orders to only show orders from the current user
-      const userOrders = orders.filter(order => {
-        // Handle case where customer might be an object or just an ID string
-        if (!order.customer) return false;
+    console.log("OrderList useEffect - orders length:", orders?.length);
+    console.log("OrderList useEffect - user:", user);
+    
+    if (orders && orders.length > 0) {
+      // For customers, the API should already filter orders, but we'll double-check
+      if (isCustomer && user?._id) {
+        console.log("Customer filtering - checking orders for user:", user._id);
         
-        const customerId = typeof order.customer === 'object' ? order.customer._id : order.customer;
-        const userId = user._id;
+        // Filter orders to only show orders from the current user
+        const userOrders = orders.filter(order => {
+          // Handle case where customer might be an object or just an ID string
+          if (!order.customer) {
+            console.log("Order missing customer field:", order._id);
+            return false;
+          }
+          
+          const customerId = typeof order.customer === 'object' 
+            ? order.customer._id 
+            : order.customer;
+            
+          const userId = user._id;
+          
+          console.log(`Comparing order customer ${customerId} with user ${userId}`);
+          return customerId === userId || customerId.toString() === userId.toString();
+        });
         
-        console.log(`Comparing order customer ${customerId} with user ${userId}`);
-        return customerId === userId || customerId === userId.toString();
-      });
-      
-      console.log(`Filtered ${orders.length} orders to ${userOrders.length} for user ${user._id}`);
-      setFilteredOrders(userOrders);
+        console.log(`Filtered ${orders.length} orders to ${userOrders.length} for user ${user._id}`);
+        setFilteredOrders(userOrders);
+      } else {
+        // If not a customer or no user ID, show all orders
+        setFilteredOrders(orders);
+      }
     } else {
-      // If not a customer or no user ID, show all orders
-      setFilteredOrders(orders);
+      // If no orders, set filtered orders to empty array
+      setFilteredOrders([]);
     }
   }, [orders, user, isCustomer]);
   
