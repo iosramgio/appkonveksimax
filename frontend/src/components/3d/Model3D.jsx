@@ -145,26 +145,42 @@ export default function Model3D() {
     const container = containerRef.current;
     if (!container) return;
     
-    // Only prevent default on the container itself
-    const preventTouchDefault = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    // Only prevent default if the touch started inside the container
+    let touchStartedInside = false;
+    
+    const handleTouchStart = (e) => {
+      touchStartedInside = true;
+      if (e.target === container || container.contains(e.target)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    
+    const handleTouchMove = (e) => {
+      if (touchStartedInside && (e.target === container || container.contains(e.target))) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    
+    const handleTouchEnd = () => {
+      touchStartedInside = false;
     };
     
     const hideInstructions = () => {
       setShowInstructions(false);
     };
     
-    // Add touch event handlers to the container only
-    container.addEventListener('touchstart', preventTouchDefault, { passive: false });
-    container.addEventListener('touchmove', preventTouchDefault, { passive: false });
-    container.addEventListener('touchend', preventTouchDefault, { passive: false });
+    // Add touch event handlers with proper checks
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
     container.addEventListener('touchstart', hideInstructions, { once: true });
     
     return () => {
-      container.removeEventListener('touchstart', preventTouchDefault);
-      container.removeEventListener('touchmove', preventTouchDefault);
-      container.removeEventListener('touchend', preventTouchDefault);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
       container.removeEventListener('touchstart', hideInstructions);
     };
   }, [containerRef.current]);

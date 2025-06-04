@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -19,6 +19,27 @@ const NavigationTracker = () => {
   return null;
 };
 
+// ScrollToTop component
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  const [isTouchDevice] = useState('ontouchstart' in window);
+
+  useEffect(() => {
+    // Small delay for mobile devices to ensure proper page transition
+    const scrollTimeout = setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: isTouchDevice ? 'auto' : 'instant' // Use 'auto' for touch devices
+      });
+    }, isTouchDevice ? 100 : 0);
+
+    return () => clearTimeout(scrollTimeout);
+  }, [pathname, isTouchDevice]);
+
+  return null;
+};
+
 const App = () => {
   return (
     <Router>
@@ -26,12 +47,13 @@ const App = () => {
         <CartProvider>
           <NotificationProvider>
             <NavigationTracker />
+            <ScrollToTop />
             <AppRouter />
             <ToastContainer
               position="top-right"
               autoClose={5000}
               hideProgressBar={false}
-              newestOnTop
+              newestOnTop={false}
               closeOnClick
               rtl={false}
               pauseOnFocusLoss

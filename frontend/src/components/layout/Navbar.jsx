@@ -25,7 +25,16 @@ const Navbar = () => {
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setIsProfileMenuOpen(false);
+    // Ensure mobile menu class is removed
+    document.body.classList.remove('mobile-menu-open');
   }, [location]);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('mobile-menu-open');
+    };
+  }, []);
   
   // Handle scroll event for navbar background
   useEffect(() => {
