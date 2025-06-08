@@ -434,6 +434,21 @@ const OrderDetail = () => {
     console.log("OrderDetail Debug - totalItemCustomDesignFees (calc from items priceDetails):", totalItemCustomDesignFees);
     console.log("OrderDetail Debug - itemsAggregatedTotal (calc from items priceDetails):", itemsAggregatedTotal);
     console.log("OrderDetail Debug - orderTotal:", orderTotal);
+    
+    // Tambahkan debug untuk payments
+    console.log("OrderDetail Debug - All payments:", JSON.stringify(payments, null, 2));
+    
+    // Cek apakah ada pembayaran dengan tipe fullPayment
+    const fullPayment = payments.find(p => p.paymentType === 'fullPayment');
+    console.log("OrderDetail Debug - Full Payment:", fullPayment ? JSON.stringify(fullPayment, null, 2) : "Not found");
+    
+    // Cek apakah ada pembayaran dengan tipe fullPayment dan status success
+    const successFullPayment = payments.find(p => p.paymentType === 'fullPayment' && p.status === 'success');
+    console.log("OrderDetail Debug - Successful Full Payment:", successFullPayment ? JSON.stringify(successFullPayment, null, 2) : "Not found");
+    
+    // Cek apakah ada pembayaran dengan tipe fullPayment dan status pending
+    const pendingFullPayment = payments.find(p => p.paymentType === 'fullPayment' && p.status === 'pending');
+    console.log("OrderDetail Debug - Pending Full Payment:", pendingFullPayment ? JSON.stringify(pendingFullPayment, null, 2) : "Not found");
   }
   // --- END DEBUGGING LOGS ---
   
@@ -676,7 +691,7 @@ const OrderDetail = () => {
                 <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
                   <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-2 flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                     Catatan Pesanan
                   </h3>
@@ -944,8 +959,9 @@ const OrderDetail = () => {
 
                 {/* Full Payment Details - NEWLY ADDED */}
                 {(() => {
-                  // Cek apakah ada pembayaran dengan tipe fullPayment dan status success
+                  // Cek apakah ada pembayaran dengan tipe fullPayment
                   if (payments && payments.length > 0) {
+                    // Cari pembayaran penuh yang berhasil
                     const fullPayment = payments.find(p => p.paymentType === 'fullPayment' && p.status === 'success');
                     
                     if (fullPayment) {
@@ -960,17 +976,19 @@ const OrderDetail = () => {
                             <div className="flex justify-between">
                               <span className="text-gray-600">Status:</span>
                               <span className="font-medium text-green-600">
-                                {fullPayment.status === 'success' ? 'Sudah Dibayar' : 
-                                 fullPayment.status === 'pending' ? 'Menunggu Pembayaran' : 
-                                 'Belum Dibayar'}
+                                Sudah Dibayar
                               </span>
                             </div>
-                            {fullPayment.paidAt && (
+                            {/* Prioritize transactionTime, then paidAt, then createdAt for payment date */}
+                            {(fullPayment.transactionTime || fullPayment.paidAt || fullPayment.createdAt) && (
                               <div className="flex justify-between">
                                 <span className="text-gray-600">Tanggal Pembayaran:</span>
-                                <span className="font-medium">{formatDate(fullPayment.paidAt)}</span>
+                                <span className="font-medium">
+                                  {formatDate(fullPayment.transactionTime || fullPayment.paidAt || fullPayment.createdAt)}
+                                </span>
                               </div>
                             )}
+                            {/* Display payment method if available */}
                             {fullPayment.paymentMethod && (
                               <div className="flex justify-between">
                                 <span className="text-gray-600">Metode Pembayaran:</span>
@@ -997,10 +1015,13 @@ const OrderDetail = () => {
                               <span className="text-gray-600">Status:</span>
                               <span className="font-medium text-yellow-600">Menunggu Pembayaran</span>
                             </div>
-                            {pendingFullPayment.createdAt && (
+                            {/* Use any available date field */}
+                            {(pendingFullPayment.createdAt || pendingFullPayment.transactionTime) && (
                               <div className="flex justify-between">
                                 <span className="text-gray-600">Tanggal Dibuat:</span>
-                                <span className="font-medium">{formatDate(pendingFullPayment.createdAt)}</span>
+                                <span className="font-medium">
+                                  {formatDate(pendingFullPayment.createdAt || pendingFullPayment.transactionTime)}
+                                </span>
                               </div>
                             )}
                             {pendingFullPayment.paymentMethod && (
@@ -1013,6 +1034,121 @@ const OrderDetail = () => {
                         </div>
                       );
                     }
+                    
+                    // Jika tidak ada fullPayment tapi ada pembayaran lain yang sudah lunas
+                    const anySuccessfulPayment = payments.find(p => p.status === 'success');
+                    if (isPaid && anySuccessfulPayment) {
+                      return (
+                        <div className="pt-3 mt-3 border-t border-gray-200">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Pembayaran Penuh</h4>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Jumlah:</span>
+                              <span className="font-medium">{formatCurrency(orderTotal)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Status:</span>
+                              <span className="font-medium text-green-600">Sudah Dibayar</span>
+                            </div>
+                            {(anySuccessfulPayment.transactionTime || anySuccessfulPayment.paidAt || anySuccessfulPayment.createdAt) && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Tanggal Pembayaran:</span>
+                                <span className="font-medium">
+                                  {formatDate(anySuccessfulPayment.transactionTime || anySuccessfulPayment.paidAt || anySuccessfulPayment.createdAt)}
+                                </span>
+                              </div>
+                            )}
+                            {anySuccessfulPayment.paymentMethod && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Metode Pembayaran:</span>
+                                <span className="font-medium">{anySuccessfulPayment.paymentMethod}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                  }
+                  
+                  // Jika pesanan sudah lunas tapi tidak ada detail pembayaran penuh (mungkin data lama)
+                  if (isPaid && (!payments || !payments.some(p => p.paymentType === 'fullPayment'))) {
+                    return (
+                      <div className="pt-3 mt-3 border-t border-gray-200">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Pembayaran Penuh</h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Jumlah:</span>
+                            <span className="font-medium">{formatCurrency(orderTotal)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Status:</span>
+                            <span className="font-medium text-green-600">Sudah Dibayar</span>
+                          </div>
+                          {order.paymentDetails?.paidAt && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Tanggal Pembayaran:</span>
+                              <span className="font-medium">{formatDate(order.paymentDetails.paidAt)}</span>
+                            </div>
+                          )}
+                          {order.paymentDetails?.paymentMethod && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Metode Pembayaran:</span>
+                              <span className="font-medium">{order.paymentDetails.paymentMethod}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  // Fallback for showing payment details even if not explicitly marked as paid
+                  // This handles cases where the payment data structure might be inconsistent
+                  if (payments && payments.length > 0 && !isPaid) {
+                    const latestPayment = payments[payments.length - 1];
+                    return (
+                      <div className="pt-3 mt-3 border-t border-gray-200">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                          {latestPayment.paymentType === 'fullPayment' ? 'Pembayaran Penuh' : 
+                           latestPayment.paymentType === 'downPayment' ? 'Uang Muka (DP)' : 
+                           latestPayment.paymentType === 'remainingPayment' ? 'Sisa Pembayaran' : 
+                           'Pembayaran'}
+                        </h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Jumlah:</span>
+                            <span className="font-medium">{formatCurrency(latestPayment.amount)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Status:</span>
+                            <span className={`font-medium ${
+                              latestPayment.status === 'success' ? 'text-green-600' : 
+                              latestPayment.status === 'pending' ? 'text-yellow-600' : 
+                              'text-red-600'
+                            }`}>
+                              {latestPayment.status === 'success' ? 'Sudah Dibayar' : 
+                               latestPayment.status === 'pending' ? 'Menunggu Pembayaran' : 
+                               'Gagal'}
+                            </span>
+                          </div>
+                          {(latestPayment.transactionTime || latestPayment.paidAt || latestPayment.createdAt) && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">
+                                {latestPayment.status === 'success' ? 'Tanggal Pembayaran:' : 'Tanggal Dibuat:'}
+                              </span>
+                              <span className="font-medium">
+                                {formatDate(latestPayment.transactionTime || latestPayment.paidAt || latestPayment.createdAt)}
+                              </span>
+                            </div>
+                          )}
+                          {latestPayment.paymentMethod && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Metode Pembayaran:</span>
+                              <span className="font-medium">{latestPayment.paymentMethod}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
                   }
                   
                   return null;
