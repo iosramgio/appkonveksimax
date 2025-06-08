@@ -942,6 +942,82 @@ const OrderDetail = () => {
                   <span>{formatCurrency(orderTotal)}</span>
                 </div>
 
+                {/* Full Payment Details - NEWLY ADDED */}
+                {(() => {
+                  // Cek apakah ada pembayaran dengan tipe fullPayment dan status success
+                  if (payments && payments.length > 0) {
+                    const fullPayment = payments.find(p => p.paymentType === 'fullPayment' && p.status === 'success');
+                    
+                    if (fullPayment) {
+                      return (
+                        <div className="pt-3 mt-3 border-t border-gray-200">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Pembayaran Penuh</h4>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Jumlah:</span>
+                              <span className="font-medium">{formatCurrency(fullPayment.amount)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Status:</span>
+                              <span className="font-medium text-green-600">
+                                {fullPayment.status === 'success' ? 'Sudah Dibayar' : 
+                                 fullPayment.status === 'pending' ? 'Menunggu Pembayaran' : 
+                                 'Belum Dibayar'}
+                              </span>
+                            </div>
+                            {fullPayment.paidAt && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Tanggal Pembayaran:</span>
+                                <span className="font-medium">{formatDate(fullPayment.paidAt)}</span>
+                              </div>
+                            )}
+                            {fullPayment.paymentMethod && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Metode Pembayaran:</span>
+                                <span className="font-medium">{fullPayment.paymentMethod}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Jika tidak ada full payment yang sukses, cek apakah ada yang pending
+                    const pendingFullPayment = payments.find(p => p.paymentType === 'fullPayment' && p.status === 'pending');
+                    if (pendingFullPayment) {
+                      return (
+                        <div className="pt-3 mt-3 border-t border-gray-200">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Pembayaran Penuh</h4>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Jumlah:</span>
+                              <span className="font-medium">{formatCurrency(pendingFullPayment.amount)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Status:</span>
+                              <span className="font-medium text-yellow-600">Menunggu Pembayaran</span>
+                            </div>
+                            {pendingFullPayment.createdAt && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Tanggal Dibuat:</span>
+                                <span className="font-medium">{formatDate(pendingFullPayment.createdAt)}</span>
+                              </div>
+                            )}
+                            {pendingFullPayment.paymentMethod && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Metode Pembayaran:</span>
+                                <span className="font-medium">{pendingFullPayment.paymentMethod}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                  }
+                  
+                  return null;
+                })()}
+
                 {/* Status Pembayaran Keseluruhan */}
                 <div className={`mt-3 text-xs font-medium p-2 rounded-md text-center ${isPaid ? 'text-green-700 bg-green-50 border border-green-200' : 'text-yellow-700 bg-yellow-50 border border-yellow-200'}`}>
                   Status Pembayaran: {isPaid ? 'LUNAS' : 'BELUM LUNAS'}
@@ -1016,7 +1092,7 @@ const OrderDetail = () => {
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <div className="bg-red-50 border border-red-100 rounded-md p-3 flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 00-1.414-1.414L10 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                       </svg>
                       <span className="text-sm text-red-700 font-medium">Pesanan ini telah ditolak dan tidak dapat diproses lebih lanjut.</span>
                     </div>
