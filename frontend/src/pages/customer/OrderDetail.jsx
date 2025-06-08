@@ -676,7 +676,7 @@ const OrderDetail = () => {
                 <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
                   <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-2 flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                     Catatan Pesanan
                   </h3>
@@ -807,10 +807,8 @@ const OrderDetail = () => {
                     // Jika tidak ada pembayaran tertunda, periksa jenis pembayaran
                     // Jika ada pembayaran dan jenis pembayarannya fullPayment, jangan tampilkan DP
                     if (payments && payments.length > 0) {
-                      // Cek apakah ada pembayaran dengan tipe fullPayment
                       const hasFullPayment = payments.some(p => p.paymentType === 'fullPayment');
-                      // Jika ada fullPayment, jangan tampilkan informasi DP sama sekali
-                      if (hasFullPayment) {
+                      if (hasFullPayment && !paymentInfo.downPayment.required) {
                         return null;
                       }
                     }
@@ -869,10 +867,8 @@ const OrderDetail = () => {
                     
                     // Jika tidak ada pembayaran tertunda, periksa jenis pembayaran
                     if (payments && payments.length > 0) {
-                      // Cek apakah ada pembayaran dengan tipe fullPayment
                       const hasFullPayment = payments.some(p => p.paymentType === 'fullPayment');
-                      // Jika ada fullPayment, jangan tampilkan informasi sisa pembayaran
-                      if (hasFullPayment) {
+                      if (hasFullPayment && !paymentInfo.downPayment.required) {
                         return null;
                       }
                     }
@@ -925,10 +921,8 @@ const OrderDetail = () => {
                   
                   // Jika tidak ada pembayaran tertunda, periksa jenis pembayaran
                   if (payments && payments.length > 0) {
-                    // Cek apakah ada pembayaran dengan tipe fullPayment
                     const hasFullPayment = payments.some(p => p.paymentType === 'fullPayment');
-                    // Jika ada fullPayment, jangan tampilkan garis pemisah
-                    if (hasFullPayment) {
+                    if (hasFullPayment && !paymentInfo.downPayment?.required) {
                       return null;
                     }
                   }
