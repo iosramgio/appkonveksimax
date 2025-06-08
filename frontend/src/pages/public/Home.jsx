@@ -229,10 +229,10 @@ const Home = () => {
                 Mewujudkan visi fashion Anda melalui layanan konveksi premium dengan standar kualitas terbaik dan harga kompetitif.
               </p>
             
-              <div className="mt-5 sm:mt-6 md:mt-8 flex flex-col sm:flex-row gap-3 justify-center sm:justify-start">
+              <div className="mt-5 sm:mt-6 md:mt-8 flex justify-center sm:justify-start">
                 <Link 
                   to="/products" 
-                  className="group px-5 sm:px-6 md:px-7 py-2.5 sm:py-3 bg-gradient-to-r from-[#620000] to-[#8B0000] text-white rounded-lg hover:from-[#8B0000] hover:to-[#620000] transition-all duration-300 shadow-xl hover:shadow-[#620000]/30 relative overflow-hidden font-medium text-sm sm:text-base md:text-lg"
+                  className="group px-8 sm:px-10 md:px-12 py-3 sm:py-3.5 bg-gradient-to-r from-[#620000] to-[#8B0000] text-white rounded-lg hover:from-[#8B0000] hover:to-[#620000] transition-all duration-300 shadow-xl hover:shadow-[#620000]/30 relative overflow-hidden font-medium text-sm sm:text-base md:text-lg"
                 >
                   <span className="relative z-10 flex items-center justify-center">
                     Jelajahi Koleksi
@@ -241,20 +241,6 @@ const Home = () => {
                     </svg>
                   </span>
                 </Link>
-                
-                <a 
-                  href="https://www.virtualthreads.io/" 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group px-5 sm:px-6 md:px-7 py-2.5 sm:py-3 bg-white text-[#620000] border border-[#620000] rounded-lg hover:bg-[#620000]/10 transition-all duration-300 relative overflow-hidden font-medium text-sm sm:text-base md:text-lg"
-                >
-                  <span className="relative z-10 flex items-center justify-center">
-                    Buat desain disini
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </span>
-                </a>
               </div>
               
               {/* Trust Badges */}
@@ -348,7 +334,7 @@ const Home = () => {
 
               <div className="space-y-6 text-gray-600">
                 <p className="text-sm sm:text-base font-light leading-relaxed">
-                  Kami adalah konveksi yang berdedikasi untuk memberikan produk berkualitas tinggi dengan standar internasional. Dengan pengalaman lebih dari 10 tahun di industri konveksi, kami telah melayani berbagai klien dari berbagai sektor bisnis.
+                  Kami adalah konveksi yang berdedikasi untuk memberikan produk berkualitas tinggi dengan standar internasional. Dengan pengalaman lebih dari 8 tahun di industri konveksi, kami telah melayani berbagai klien dari berbagai sektor bisnis.
                 </p>
                 
                 <p className="text-sm sm:text-base font-light leading-relaxed">

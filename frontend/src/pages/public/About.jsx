@@ -32,7 +32,7 @@ const About = () => {
           </h1>
             <div className="h-1 w-20 bg-white mx-auto mb-6"></div>
             <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-100 leading-relaxed">
-              Menyediakan solusi konveksi berkualitas tinggi untuk kebutuhan personal dan bisnis Anda sejak 2010
+              Menyediakan solusi konveksi berkualitas tinggi untuk kebutuhan personal dan bisnis Anda sejak 2017
           </p>
           </div>
         </div>
@@ -49,7 +49,7 @@ const About = () => {
               </div>
               <div className="prose prose-lg text-gray-600 space-y-6">
                 <p className="text-lg leading-relaxed">
-                  Didirikan pada tahun 2010, perusahaan konveksi kami telah menjadi salah satu penyedia solusi konveksi terkemuka di Indonesia. Kami memulai bisnis ini dengan visi sederhana: menyediakan produk konveksi berkualitas tinggi dengan harga yang terjangkau.
+                  Didirikan pada tahun 2017, perusahaan konveksi kami telah menjadi salah satu penyedia solusi konveksi terkemuka di Indonesia. Kami memulai bisnis ini dengan visi sederhana: menyediakan produk konveksi berkualitas tinggi dengan harga yang terjangkau.
                 </p>
                 <p className="text-lg leading-relaxed">
                   Seiring berjalannya waktu, kami terus berinovasi dan meningkatkan layanan kami untuk memenuhi kebutuhan pelanggan yang terus berkembang. Dari bisnis kecil hingga menjadi perusahaan yang dipercaya oleh berbagai klien dari berbagai industri.
@@ -499,16 +499,20 @@ const About = () => {
             </div>
           </div>
           
-          <div className="mt-12 text-center" data-aos="fade-up" data-aos-delay="1000">
-            <Link
-              to="/products"
+          <div className="mt-12 text-center" data-aos="fade-up" data-aos-delay="700">
+            <a 
+              href="https://www.instagram.com/maxsupply_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-md border-2 border-[#620000] bg-[#620000] py-3 px-6 text-base font-medium text-white shadow-sm hover:bg-[#620000]/90 transition-all duration-300"
             >
-              Lihat Semua Produk
+              Lihat Lebih Banyak
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 3h8a5 5 0 015 5v8a5 5 0 01-5 5H8a5 5 0 01-5-5V8a5 5 0 015-5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                <circle cx="16.5" cy="7.5" r="1.5" stroke="none" fill="currentColor" />
               </svg>
-            </Link>
+            </a>
           </div>
         </div>
       </div>

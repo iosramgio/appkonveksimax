@@ -262,7 +262,13 @@ const OrderList = ({ orders = [], loading, onStatusChange, onPageChange, totalPa
                       <div className="mb-4 sm:mb-0">
                         <div>
                           <Link
-                            to={isCustomer ? `/customer/orders/${order._id}` : `/cashier/orders/${order._id}`}
+                            to={
+                              isCustomer 
+                                ? `/customer/orders/${order._id}` 
+                                : user?.role === 'admin'
+                                  ? `/admin/orders/${order._id}`
+                                  : `/cashier/orders/${order._id}`
+                            }
                             className="text-lg font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
                           >
                             Pesanan #{order.orderNumber}
@@ -330,7 +336,13 @@ const OrderList = ({ orders = [], loading, onStatusChange, onPageChange, totalPa
                         <div className="flex items-center mt-3">
                           {!order.paymentDetails.isPaid && order.status !== 'Ditolak' && order.verificationStatus !== 'Ditolak' && (
                             <Link
-                              to={isCustomer ? `/customer/orders/${order._id}` : `/cashier/orders/${order._id}`}
+                              to={
+                                isCustomer 
+                                  ? `/customer/orders/${order._id}` 
+                                  : user?.role === 'admin'
+                                    ? `/admin/orders/${order._id}`
+                                    : `/cashier/orders/${order._id}`
+                              }
                               className="mr-2 inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-100 text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -342,7 +354,13 @@ const OrderList = ({ orders = [], loading, onStatusChange, onPageChange, totalPa
                           
                           {/* Detail Button */}
                           <Link
-                            to={isCustomer ? `/customer/orders/${order._id}` : `/cashier/orders/${order._id}`}
+                            to={
+                              isCustomer 
+                                ? `/customer/orders/${order._id}` 
+                                : user?.role === 'admin'
+                                  ? `/admin/orders/${order._id}`
+                                  : `/cashier/orders/${order._id}`
+                            }
                             className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
                           >
                             Lihat Detail Lengkap
@@ -541,7 +559,13 @@ const OrderList = ({ orders = [], loading, onStatusChange, onPageChange, totalPa
                         {/* View Detail Link */}
                         <div className="mt-4 text-center">
                           <Link
-                            to={isCustomer ? `/customer/orders/${order._id}` : `/cashier/orders/${order._id}`}
+                            to={
+                              isCustomer 
+                                ? `/customer/orders/${order._id}` 
+                                : user?.role === 'admin'
+                                  ? `/admin/orders/${order._id}`
+                                  : `/cashier/orders/${order._id}`
+                            }
                             className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

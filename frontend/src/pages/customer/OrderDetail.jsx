@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
+import Modal from '../../components/common/Modal';
+import OrderReceipt from '../../components/orders/OrderReceipt';
 import { formatDate, formatCurrency } from '../../utils/formatter';
 import { useApi } from '../../hooks/useApi';
 import { useNotification } from '../../hooks/useNotification';
@@ -85,6 +87,7 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [payments, setPayments] = useState([]);
   const navigate = useNavigate();
   
@@ -466,7 +469,9 @@ const OrderDetail = () => {
                 </svg>
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Pesanan #{order.orderNumber}</h2>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">Pesanan #{order.orderNumber}</h2>
+                </div>
                 <p className="text-sm text-gray-600 mt-0.5 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -476,7 +481,7 @@ const OrderDetail = () => {
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
               <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium inline-flex items-center ${getStatusBadgeClass(order.status)}`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current mr-1"></span>
                 {order.status}
@@ -507,7 +512,16 @@ const OrderDetail = () => {
                   Pesanan Offline
                 </span>
               )}
-              {/* === AKHIR PENAMBAHAN BADGE VERIFIKASI & OFFLINE === */}
+              <Button
+                onClick={() => setShowReceiptModal(true)}
+                variant="primary"
+                className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 text-xs sm:text-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Lihat Nota
+              </Button>
             </div>
           </div>
         </div>
@@ -1041,6 +1055,58 @@ const OrderDetail = () => {
           )}
         </div>
       </div>
+
+      {/* Payment History Section */}
+      {payments.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Riwayat Pembayaran</h3>
+            <div className="space-y-4">
+              {payments.map((payment, index) => (
+                <div key={payment._id} className="border-b last:border-b-0 pb-4 last:pb-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">
+                        {payment.paymentType === 'downPayment' ? 'Uang Muka (DP)' :
+                         payment.paymentType === 'remainingPayment' ? 'Pelunasan' :
+                         'Pembayaran Penuh'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {formatDate(payment.createdAt)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">{formatCurrency(payment.amount)}</p>
+                      <p className={`text-sm ${
+                        payment.status === 'success' ? 'text-green-600' :
+                        payment.status === 'pending' ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        {payment.status === 'success' ? 'Berhasil' :
+                         payment.status === 'pending' ? 'Menunggu Pembayaran' :
+                         'Gagal'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Modal */}
+      <Modal
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        title="Nota Pembelian"
+        size="2xl"
+      >
+        <OrderReceipt 
+          order={order}
+          onPrint={() => setShowReceiptModal(false)}
+        />
+      </Modal>
     </div>
   );
 };

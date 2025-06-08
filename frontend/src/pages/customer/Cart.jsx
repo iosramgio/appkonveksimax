@@ -39,8 +39,16 @@ const Cart = () => {
     );
   }
 
-  const handleRemoveItem = (itemId) => {
-    removeFromCart(itemId);
+  const handleRemoveItem = (item) => {
+    removeFromCart({
+      productId: item.productId,
+      color: {
+        id: item.color.id
+      },
+      material: {
+        id: item.material.id
+      }
+    });
     showNotification('Item berhasil dihapus dari keranjang', 'success');
   };
 
@@ -290,7 +298,7 @@ const Cart = () => {
                         </div>
                       </div>
                       <button
-                        onClick={() => handleRemoveItem(item._id)}
+                        onClick={() => handleRemoveItem(item)}
                         className="text-red-600 hover:text-red-800"
                         title="Hapus dari keranjang"
                       >

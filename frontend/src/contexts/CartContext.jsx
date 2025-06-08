@@ -180,7 +180,13 @@ const cartReducer = async (state, action) => {
     }
     
     case 'REMOVE_FROM_CART': {
-      const updatedItems = state.items.filter(item => item._id !== action.payload);
+      const updatedItems = state.items.filter(item => {
+        // Menggunakan kombinasi productId, warna, dan material sebagai identifier unik
+        const itemToRemove = action.payload;
+        return !(item.productId === itemToRemove.productId && 
+                item.color.id === itemToRemove.color.id && 
+                item.material.id === itemToRemove.material.id);
+      });
       const recalculatedState = await recalculateCart(updatedItems);
       newState = { ...state, ...recalculatedState };
       break;

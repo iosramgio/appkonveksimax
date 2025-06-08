@@ -3,10 +3,19 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 const Sidebar = ({ onToggle }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  
+  const [isCollapsed, setIsCollapsed] = useState(user?.role === 'staff');
+  const [openDropdown, setOpenDropdown] = useState('');
+  
+  // Set initial collapsed state for staff when user changes
+  useEffect(() => {
+    if (user?.role === 'staff') {
+      setIsCollapsed(true);
+    }
+  }, [user]);
   
   const handleLogout = () => {
     logout();
@@ -20,6 +29,10 @@ const Sidebar = ({ onToggle }) => {
     if (onToggle) {
       onToggle(newState);
     }
+  };
+
+  const toggleDropdown = (dropdownName) => {
+    setOpenDropdown(openDropdown === dropdownName ? '' : dropdownName);
   };
   
   // Listen for toggle event from dashboard
@@ -68,6 +81,29 @@ const Sidebar = ({ onToggle }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
             )
+          },
+          {
+            name: 'Order Management',
+            icon: (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            ),
+            isDropdown: true,
+            items: [
+              {
+                name: 'Order List',
+                path: '/admin/orders',
+              },
+              {
+                name: 'Payment Verification',
+                path: '/admin/payments',
+              },
+              {
+                name: 'Create Order',
+                path: '/admin/orders/create',
+              }
+            ]
           },
           {
             name: 'Backup & Restore',
@@ -139,15 +175,6 @@ const Sidebar = ({ onToggle }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
             )
-          },
-          {
-            name: 'Production Orders',
-            path: '/staff/production',
-            icon: (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-              </svg>
-            )
           }
         ];
       
@@ -208,6 +235,53 @@ const Sidebar = ({ onToggle }) => {
           <ul className="space-y-2 px-2">
             {navItems.map((item, index) => (
               <li key={index}>
+                {item.isDropdown ? (
+                  <div>
+                    <button
+                      onClick={() => toggleDropdown(item.name)}
+                      className={`flex items-center justify-between w-full p-3 rounded-md ${
+                        location.pathname.includes(item.path)
+                          ? 'bg-[#620000]/10 text-[#620000]'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <span className="flex-shrink-0">{item.icon}</span>
+                        {!isCollapsed && <span className="ml-3">{item.name}</span>}
+                      </div>
+                      {!isCollapsed && (
+                        <svg
+                          className={`w-4 h-4 transition-transform ${
+                            openDropdown === item.name ? 'transform rotate-180' : ''
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      )}
+                    </button>
+                    {!isCollapsed && openDropdown === item.name && (
+                      <ul className="mt-2 space-y-2 pl-11">
+                        {item.items.map((subItem, subIndex) => (
+                          <li key={subIndex}>
+                            <Link
+                              to={subItem.path}
+                              className={`block py-2 px-3 rounded-md ${
+                                location.pathname === subItem.path
+                                  ? 'bg-[#620000]/10 text-[#620000]'
+                                  : 'text-gray-600 hover:bg-gray-50 hover:text-[#620000]'
+                              }`}
+                            >
+                              {subItem.name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
                 <Link
                   to={item.path}
                   className={`flex items-center p-3 rounded-md ${
@@ -220,6 +294,7 @@ const Sidebar = ({ onToggle }) => {
                   <span className="flex-shrink-0">{item.icon}</span>
                   {!isCollapsed && <span className="ml-3">{item.name}</span>}
                 </Link>
+                )}
               </li>
             ))}
           </ul>

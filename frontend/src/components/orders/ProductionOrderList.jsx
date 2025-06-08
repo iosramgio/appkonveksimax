@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDate } from '../../utils/formatter';
 import Button from '../common/Button';
 import Card from '../common/Card';
 import OrderItemCard from './OrderItemCard';
+import Pagination from '../common/Pagination';
 
 // Import icons
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
@@ -16,20 +17,37 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import PersonIcon from '@mui/icons-material/Person';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 
 const ProductionOrderList = ({ orders, onStatusChange, loading }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
+
+  // Get current orders
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = orders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const totalPages = Math.ceil(orders.length / ordersPerPage);
+
+  // Change page
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
   const getStatusInfo = (status) => {
     switch (status) {
       case 'Diproses':
         return {
-          bgColor: 'bg-blue-100',
-          textColor: 'text-blue-800',
-          icon: <FactoryIcon fontSize="small" className="text-blue-800 mr-1" />,
+          bgColor: 'bg-yellow-100',
+          textColor: 'text-yellow-800',
+          icon: <FactoryIcon fontSize="small" className="text-yellow-800 mr-1" />,
           actionBtn: {
             label: 'Selesai Produksi',
-            variant: 'primary',
+            variant: 'success',
             icon: <CheckCircleIcon fontSize="small" />,
-            nextStatus: 'Selesai Produksi'
+            nextStatus: 'Selesai Produksi',
+            color: 'bg-green-600 hover:bg-green-700'
           }
         };
       case 'Selesai Produksi':
@@ -41,7 +59,8 @@ const ProductionOrderList = ({ orders, onStatusChange, loading }) => {
             label: 'Siap Kirim',
             variant: 'success',
             icon: <LocalShippingIcon fontSize="small" />,
-            nextStatus: 'Siap Kirim'
+            nextStatus: 'Siap Kirim',
+            color: 'bg-purple-600 hover:bg-purple-700'
           }
         };
       case 'Siap Kirim':
@@ -53,7 +72,8 @@ const ProductionOrderList = ({ orders, onStatusChange, loading }) => {
             label: 'Selesai',
             variant: 'secondary',
             icon: <CheckCircleIcon fontSize="small" />,
-            nextStatus: 'Selesai'
+            nextStatus: 'Selesai',
+            color: 'bg-gray-600 hover:bg-gray-700'
           }
         };
       case 'Selesai':
@@ -121,207 +141,244 @@ const ProductionOrderList = ({ orders, onStatusChange, loading }) => {
   }
 
   return (
-    <div className="space-y-4">
-      {orders.map((order) => {
-        const statusInfo = getStatusInfo(order.status);
-        const paymentInfo = getPaymentStatusInfo(
-          order.paymentDetails?.isPaid, 
-          order.paymentDetails?.downPayment?.status
-        );
-        
-        return (
-          <Card key={order._id} className="overflow-hidden hover:shadow-md transition-shadow duration-300">
-            <div className="border-l-4 border-blue-500">
-              <div className="p-4">
-                {/* Header dengan nomor pesanan dan status */}
-                <div className="flex flex-wrap justify-between items-center mb-3">
-                  <div className="flex items-center mb-2 md:mb-0">
-                    <ReceiptIcon className="text-blue-600 mr-2" />
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">#{order.orderNumber}</h3>
+    <>
+      <div className="space-y-4">
+        {currentOrders.map((order) => {
+          const statusInfo = getStatusInfo(order.status);
+          const paymentInfo = getPaymentStatusInfo(
+            order.paymentDetails?.isPaid, 
+            order.paymentDetails?.downPayment?.status
+          );
+          
+          return (
+            <Card key={order._id} className="overflow-hidden hover:shadow-md transition-shadow duration-300">
+              <div className="border-l-4 border-blue-500">
+                <div className="p-4">
+                  {/* Header dengan nomor pesanan dan status */}
+                  <div className="flex flex-wrap justify-between items-center mb-3">
+                    <Link 
+                      to={`/staff/orders/${order._id}`}
+                      className="flex items-center mb-2 md:mb-0 hover:text-blue-600 transition-colors duration-200 group"
+                    >
                       <div className="flex items-center">
-                        <p className="text-sm text-gray-600 mr-2">{formatDate(order.createdAt)}</p>
-                        {order.isOfflineOrder ? (
-                          <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded">Offline</span>
-                        ) : (
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">Online</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {/* Status Order */}
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.textColor}`}>
-                      {statusInfo.icon}
-                      {order.status}
-                    </span>
-                    
-                    {/* Status Pembayaran */}
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${paymentInfo.bgColor} ${paymentInfo.textColor}`}>
-                      {paymentInfo.icon}
-                      {paymentInfo.label}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Informasi Customer */}
-                <div className="mb-3 bg-gray-50 p-2 rounded-lg">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <PersonIcon fontSize="small" className="mr-1 text-gray-500" />
-                    <span className="font-medium mr-2">Pelanggan:</span>
-                    <span>{order.customer?.name || 'Pelanggan tidak dikenal'}</span>
-                  </div>
-                  {order.estimatedCompletionDate && (
-                    <div className="flex items-center text-sm text-gray-600 mt-1">
-                      <CalendarTodayIcon fontSize="small" className="mr-1 text-gray-500" />
-                      <span className="font-medium mr-2">Estimasi Selesai:</span>
-                      <span>{formatDate(order.estimatedCompletionDate)}</span>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Item Pesanan */}
-                <div className="bg-gray-50 rounded-lg mb-3">
-                  <div className="space-y-2 divide-y divide-gray-100">
-                    {order.items.map((item, index) => (
-                      <div key={index} className="p-3">
-                        <div className="flex flex-col md:flex-row justify-between">
-                          <div className="flex items-start">
-                            {/* Gambar Produk */}
-                            <div className="mr-3 flex-shrink-0">
-                              {item.product?.images && item.product.images.length > 0 ? (
-                                <img 
-                                  src={typeof item.product.images[0] === 'string' 
-                                        ? item.product.images[0] 
-                                        : item.product.images[0].url} 
-                                  alt={item.product?.name || 'Product'} 
-                                  className="w-16 h-16 object-cover rounded border border-gray-200"
-                                />
-                              ) : (
-                                <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center border border-gray-300">
-                                  <InventoryIcon className="text-gray-400" />
-                                </div>
-                              )}
+                        <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 group-hover:bg-blue-100 transition-colors duration-200">
+                          <ReceiptIcon className="text-blue-600" />
+                        </div>
+                        <div className="ml-3">
+                          <div className="flex items-center">
+                            <span className="text-sm text-gray-500 font-medium">Order ID:</span>
+                            <h3 className="text-lg font-semibold text-gray-900 ml-2 group-hover:text-blue-600">#{order.orderNumber}</h3>
+                          </div>
+                          <div className="flex items-center mt-1">
+                            <div className="flex items-center text-sm text-gray-500">
+                              <CalendarTodayIcon fontSize="small" className="w-4 h-4 mr-1" />
+                              {formatDate(order.createdAt)}
                             </div>
-                            
-                            {/* Detail Produk */}
-                            <div>
-                              <span className="font-medium text-gray-800">
-                                {item.product?.name || 
-                                 (item.sku ? `Produk SKU: ${item.sku}` : 'Produk')}
-                              </span>
+                            <div className="mx-2 text-gray-300">|</div>
+                            {order.isOfflineOrder ? (
+                              <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full font-medium">Offline</span>
+                            ) : (
+                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-medium">Online</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      {/* Status Order */}
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium w-fit ${statusInfo.bgColor} ${statusInfo.textColor}`}>
+                        {statusInfo.icon}
+                        {order.status}
+                      </span>
+                      
+                      {/* Status Pembayaran */}
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${paymentInfo.bgColor} ${paymentInfo.textColor}`}>
+                        {paymentInfo.icon}
+                        {paymentInfo.label}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Informasi Customer */}
+                  <div className="mb-3 bg-gray-50 p-2 rounded-lg">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <PersonIcon fontSize="small" className="mr-1 text-gray-500" />
+                      <span className="font-medium mr-2">Pelanggan:</span>
+                      <span>{order.customer?.name || 'Pelanggan tidak dikenal'}</span>
+                    </div>
+                    {order.estimatedCompletionDate && (
+                      <div className="flex items-center text-sm text-gray-600 mt-1">
+                        <CalendarTodayIcon fontSize="small" className="mr-1 text-gray-500" />
+                        <span className="font-medium mr-2">Estimasi Selesai:</span>
+                        <span>{formatDate(order.estimatedCompletionDate)}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Item Pesanan */}
+                  <div className="bg-gray-50 rounded-lg mb-3">
+                    <div className="space-y-2 divide-y divide-gray-100">
+                      {order.items.map((item, index) => (
+                        <div key={index} className="p-3">
+                          <div className="flex flex-col md:flex-row justify-between">
+                            <div className="flex items-start">
+                              {/* Gambar Produk */}
+                              <div className="mr-3 flex-shrink-0">
+                                {item.product?.images && item.product.images.length > 0 ? (
+                                  <img 
+                                    src={typeof item.product.images[0] === 'string' 
+                                          ? item.product.images[0] 
+                                          : item.product.images[0].url} 
+                                    alt={item.product?.name || 'Product'} 
+                                    className="w-16 h-16 object-cover rounded border border-gray-200"
+                                  />
+                                ) : (
+                                  <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center border border-gray-300">
+                                    <InventoryIcon className="text-gray-400" />
+                                  </div>
+                                )}
+                              </div>
                               
-                              <div className="mt-1">
-                                <div className="text-sm text-gray-600">
-                                  <span className="font-medium">Jumlah: </span>
-                                  {item.quantity} pcs
-                                </div>
+                              {/* Detail Produk */}
+                              <div>
+                                <span className="font-medium text-gray-800">
+                                  {item.product?.name || 
+                                   (item.sku ? `Produk SKU: ${item.sku}` : 'Produk')}
+                                </span>
                                 
-                                {/* Size Breakdown */}
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {item.sizeBreakdown && item.sizeBreakdown.map((sb, i) => (
-                                    <span key={i} className="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded">
-                                      {sb.size}: {sb.quantity}
-                                    </span>
-                                  ))}
-                                </div>
-                                
-                                {/* Warna & Material */}
-                                {(item.color || item.material) && (
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    {item.color && <span className="mr-2">Warna: {typeof item.color === 'object' ? item.color.name : item.color}</span>}
-                                    {item.material && <span>Material: {typeof item.material === 'object' ? item.material.name : item.material}</span>}
+                                <div className="mt-1">
+                                  <div className="text-sm text-gray-600">
+                                    <span className="font-medium">Jumlah: </span>
+                                    {item.quantity} pcs
                                   </div>
-                                )}
-                                
-                                {/* Kustom Desain */}
-                                {item.customDesign && (
-                                  <div className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded inline-block mt-1">
-                                    Desain Kustom
+                                  
+                                  {/* Size Breakdown */}
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {item.sizeBreakdown && item.sizeBreakdown.map((sb, i) => (
+                                      <span key={i} className="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded">
+                                        {sb.size}: {sb.quantity}
+                                      </span>
+                                    ))}
                                   </div>
-                                )}
+                                  
+                                  {/* Warna & Material */}
+                                  {(item.color || item.material) && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {item.color && <span className="mr-2">Warna: {typeof item.color === 'object' ? item.color.name : item.color}</span>}
+                                      {item.material && <span>Material: {typeof item.material === 'object' ? item.material.name : item.material}</span>}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Kustom Desain */}
+                                  {item.customDesign && (
+                                    <div className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded inline-block mt-1">
+                                      Desain Kustom
+                                    </div>
+                                  )}
 
-                                {/* Detail Custom Design */}
-                                {item.customDesign && item.customDesign.isCustom && (
-                                  <div className="mt-3 pt-2 border-t border-gray-200">
-                                    <div className="flex items-center text-xs text-blue-600 mb-2">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                      </svg>
-                                      <span className="font-medium">Detail Desain Kustom</span>
-                                    </div>
-                                    
-                                    <div className="flex flex-wrap items-start gap-3">
-                                      {/* Custom Design Image */}
-                                      {(item.customDesign.designUrl || item.customDesign.url) && (
-                                        <div className="flex-shrink-0">
-                                          <img 
-                                            src={item.customDesign.designUrl || item.customDesign.url} 
-                                            alt="Custom Design" 
-                                            className="h-24 w-auto max-w-[120px] object-contain border border-gray-200 rounded-md bg-white p-1"
-                                            onError={(e) => { 
-                                              console.log('Failed to load design image:', item.customDesign.designUrl || item.customDesign.url);
-                                              e.target.src = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22100%22 height%3D%22100%22 viewBox%3D%220 0 100 100%22%3E%3Crect width%3D%22100%22 height%3D%22100%22 fill%3D%22%23f1f5f9%22%2F%3E%3Ctext x%3D%2250%22 y%3D%2250%22 font-family%3D%22Arial%22 font-size%3D%2212%22 text-anchor%3D%22middle%22 dominant-baseline%3D%22middle%22 fill%3D%22%2364748b%22%3ENo Image%3C%2Ftext%3E%3C%2Fsvg%3E';
-                                            }}
-                                          />
-                                        </div>
-                                      )}
+                                  {/* Detail Custom Design */}
+                                  {item.customDesign && item.customDesign.isCustom && (
+                                    <div className="mt-3 pt-2 border-t border-gray-200">
+                                      <div className="flex items-center text-xs text-blue-600 mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span className="font-medium">Detail Desain Kustom</span>
+                                      </div>
                                       
-                                      {/* Custom Design Notes */}
-                                      {item.customDesign.notes && (
-                                        <div className="flex-1 text-xs text-gray-600">
-                                          <div className="font-medium text-gray-700 mb-1">Catatan Desain:</div>
-                                          <p className="italic bg-white p-2 rounded-md border border-gray-100">
-                                            "{item.customDesign.notes}"
-                                          </p>
-                                        </div>
-                                      )}
+                                      <div className="flex flex-wrap items-start gap-3">
+                                        {/* Custom Design Image */}
+                                        {(item.customDesign.designUrl || item.customDesign.url) && (
+                                          <div className="flex-shrink-0">
+                                            <img 
+                                              src={item.customDesign.designUrl || item.customDesign.url} 
+                                              alt="Custom Design" 
+                                              className="h-24 w-auto max-w-[120px] object-contain border border-gray-200 rounded-md bg-white p-1"
+                                              onError={(e) => { 
+                                                console.log('Failed to load design image:', item.customDesign.designUrl || item.customDesign.url);
+                                                e.target.src = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22100%22 height%3D%22100%22 viewBox%3D%220 0 100 100%22%3E%3Crect width%3D%22100%22 height%3D%22100%22 fill%3D%22%23f1f5f9%22%2F%3E%3Ctext x%3D%2250%22 y%3D%2250%22 font-family%3D%22Arial%22 font-size%3D%2212%22 text-anchor%3D%22middle%22 dominant-baseline%3D%22middle%22 fill%3D%22%2364748b%22%3ENo Image%3C%2Ftext%3E%3C%2Fsvg%3E';
+                                              }}
+                                            />
+                                          </div>
+                                        )}
+                                        
+                                        {/* Custom Design Notes */}
+                                        {item.customDesign.notes && (
+                                          <div className="flex-1 text-xs text-gray-600">
+                                            <div className="font-medium text-gray-700 mb-1">Catatan Desain:</div>
+                                            <p className="italic bg-white p-2 rounded-md border border-gray-100">
+                                              "{item.customDesign.notes}"
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* Footer dengan aksi */}
-                <div className="flex flex-col md:flex-row gap-2 justify-between items-center mt-4 pt-3 border-t border-gray-200">
-                  <Link
-                    to={`/staff/orders/${order._id}`}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
-                  >
-                    <InfoIcon fontSize="small" className="mr-1" />
-                    Lihat Detail
-                  </Link>
-                  <div>
-                    {statusInfo.actionBtn && (
-                      order.status !== 'Selesai Produksi' || order.paymentDetails?.isPaid ? (
-                        <Button
-                          label={statusInfo.actionBtn.label}
-                          variant={statusInfo.actionBtn.variant}
-                          size="small"
-                          icon={statusInfo.actionBtn.icon}
-                          onClick={() => onStatusChange(order._id, statusInfo.actionBtn.nextStatus)}
-                        />
-                      ) : (
-                        <span className="text-xs bg-red-100 text-red-800 px-3 py-1.5 rounded-full flex items-center">
-                          <PaidIcon fontSize="small" className="mr-1" />
-                          Menunggu Pelunasan
-                        </span>
-                      )
-                    )}
+                  {/* Footer dengan aksi */}
+                  <div className="flex flex-col md:flex-row gap-2 justify-between items-center mt-4 pt-3 border-t border-gray-200">
+                    <Link
+                      to={`/staff/orders/${order._id}`}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                    >
+                      <InfoIcon fontSize="small" className="mr-1" />
+                      Lihat Detail
+                    </Link>
+                    <div>
+                      {statusInfo.actionBtn && (
+                        <div className="relative">
+                          <Button
+                            label={statusInfo.actionBtn.label}
+                            size="small"
+                            icon={statusInfo.actionBtn.icon}
+                            onClick={() => onStatusChange(order._id, statusInfo.actionBtn.nextStatus)}
+                            disabled={statusInfo.actionBtn.nextStatus === 'Siap Kirim' && !order.paymentDetails?.isPaid}
+                            className={`${statusInfo.actionBtn.color} text-white ${
+                              statusInfo.actionBtn.nextStatus === 'Siap Kirim' && !order.paymentDetails?.isPaid
+                                ? 'opacity-50 cursor-not-allowed'
+                                : ''
+                            }`}
+                          />
+                          {statusInfo.actionBtn.nextStatus === 'Siap Kirim' && !order.paymentDetails?.isPaid && (
+                            <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 transform translate-y-full w-48 px-2 py-1 bg-red-50 border border-red-100 rounded-md shadow-lg z-10">
+                              <div className="flex items-center text-xs text-red-600">
+                                <PaidIcon fontSize="small" className="mr-1" />
+                                Menunggu Pelunasan
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </Card>
-        );
-      })}
-    </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-6 flex justify-center">
+          <Pagination 
+            currentPage={currentPage} 
+            totalPages={totalPages} 
+            onPageChange={handlePageChange}
+            variant="rounded"
+            maxPageLinks={5}
+          />
+        </div>
+      )}
+    </>
   );
 };
 

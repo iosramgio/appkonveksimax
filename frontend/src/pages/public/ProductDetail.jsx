@@ -535,10 +535,11 @@ const ProductDetail = () => {
       // Ambil token dari sessionStorage
       const token = sessionStorage.getItem('token');
       
-      // Fix: Use the correct API endpoint for file uploads
-      const response = await api.post('/files/upload', formData, {
+      // Use the correct endpoint for design uploads that uses Cloudinary
+      const response = await api.post('/products/upload-design', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}` // Add token for authentication
         }
       });
       
@@ -546,22 +547,15 @@ const ProductDetail = () => {
         // Save the design data with cloudinary URL
         const customizationFee = product?.customizationFee || 0;
         
-        // Make sure the URL is properly formatted with the API base URL if it's a relative path
-        let designUrl = response.data.url;
-        if (designUrl && designUrl.startsWith('/')) {
-          const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://appkonveksimax.onrender.com';
-          designUrl = `${apiBaseUrl}${designUrl}`;
-        }
-        
         setCustomDesign({
           ...designData,
-          url: designUrl,
-          designUrl: designUrl, // For backward compatibility
+          url: response.data.url,
+          designUrl: response.data.url, // Use the Cloudinary URL directly
           isCustom: true,
           customizationFee: customizationFee
         });
         
-        console.log('Design uploaded successfully:', designUrl);
+        console.log('Design uploaded successfully:', response.data.url);
       } else {
         throw new Error('Failed to get upload URL');
       }

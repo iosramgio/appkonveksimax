@@ -37,17 +37,20 @@ import ActivityLogs from '../pages/admin/ActivityLogs';
 import CreateProduct from '../pages/admin/CreateProduct';
 import EditProduct from '../pages/admin/EditProduct';
 import AdminProductDetail from '../pages/admin/ProductDetail';
+import OrderManagement from '../pages/admin/OrderManagement';
+import PaymentVerification from '../pages/admin/PaymentVerification';
+import AdminOrderDetail from '../pages/admin/OrderDetail';
+import AdminManualOrder from '../pages/admin/ManualOrder';
 
 // Cashier Pages
 import CashierDashboard from '../pages/cashier/Dashboard';
 import ManualOrder from '../pages/cashier/ManualOrder';
-import OrderManagement from '../pages/cashier/OrderManagement';
-import PaymentVerification from '../pages/cashier/PaymentVerification';
+import CashierOrderManagement from '../pages/cashier/OrderManagement';
+import CashierPaymentVerification from '../pages/cashier/PaymentVerification';
 import CashierOrderDetail from '../pages/cashier/OrderDetail';
 
 // Staff Pages
 import StaffDashboard from '../pages/staff/Dashboard';
-import ProductionOrders from '../pages/staff/ProductionOrders';
 import StaffOrderDetail from '../pages/staff/OrderDetail';
 
 // Owner Pages
@@ -135,6 +138,10 @@ const AppRouter = () => {
           <Route path="products/create" element={<CreateProduct />} />
           <Route path="products/edit/:id" element={<EditProduct />} />
           <Route path="products/:id" element={<AdminProductDetail />} />
+          <Route path="orders" element={<OrderManagement />} />
+          <Route path="orders/create" element={<AdminManualOrder />} />
+          <Route path="orders/:orderId" element={<AdminOrderDetail />} />
+          <Route path="payments" element={<PaymentVerification />} />
           <Route path="backup" element={<BackupRestore />} />
           <Route path="logs" element={<ActivityLogs />} />
         </Route>
@@ -145,9 +152,9 @@ const AppRouter = () => {
         }>
           <Route path="dashboard" element={<CashierDashboard />} />
           <Route path="orders/create" element={<ManualOrder />} />
-          <Route path="orders" element={<OrderManagement />} />
+          <Route path="orders" element={<CashierOrderManagement />} />
           <Route path="orders/:orderId" element={<CashierOrderDetail />} />
-          <Route path="payments" element={<PaymentVerification />} />
+          <Route path="payments" element={<CashierPaymentVerification />} />
         </Route>
         
         {/* Staff Routes */}
@@ -155,7 +162,6 @@ const AppRouter = () => {
           <StaffRoute />
         }>
           <Route path="dashboard" element={<StaffDashboard />} />
-          <Route path="production" element={<ProductionOrders />} />
           <Route path="orders/:orderId" element={<StaffOrderDetail />} />
         </Route>
         

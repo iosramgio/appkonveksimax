@@ -39,13 +39,18 @@ const MainLayout = () => {
     // Initial check
     handleResize();
     
+    // Set collapsed by default for staff
+    if (location.pathname.includes('/staff')) {
+      setSidebarCollapsed(true);
+    }
+    
     // Listen for window resize
     window.addEventListener('resize', handleResize);
     
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [location.pathname]);
   
   // Don't show header and footer on auth pages
   if (isAuthRoute) {

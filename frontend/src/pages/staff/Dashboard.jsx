@@ -193,11 +193,11 @@ const StaffDashboard = () => {
           <div className="mt-4 sm:mt-6 bg-white rounded-lg shadow p-4 sm:p-6">
             <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Ringkasan Tugas</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-              <div className="border border-blue-200 rounded-lg p-3 sm:p-4 bg-blue-50">
+              <div className="border border-yellow-200 rounded-lg p-3 sm:p-4 bg-yellow-50">
                 <div className="flex items-center">
-                  <div className="p-2 sm:p-3 rounded-full bg-blue-100 text-blue-600">
+                  <div className="p-2 sm:p-3 rounded-full bg-yellow-100 text-yellow-600">
                     <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                     </svg>
                   </div>
                   <div className="ml-3 sm:ml-4">
@@ -208,7 +208,7 @@ const StaffDashboard = () => {
                   </div>
                 </div>
                 <button 
-                  className="mt-3 w-full py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg"
+                  className="mt-3 w-full py-1.5 sm:py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs sm:text-sm font-medium rounded-lg"
                   onClick={() => setActiveFilter('diproses')}
                 >
                   Lihat Pesanan
@@ -237,11 +237,11 @@ const StaffDashboard = () => {
                 </button>
               </div>
               
-              <div className="border border-yellow-200 rounded-lg p-3 sm:p-4 bg-yellow-50">
+              <div className="border border-purple-200 rounded-lg p-3 sm:p-4 bg-purple-50">
                 <div className="flex items-center">
-                  <div className="p-2 sm:p-3 rounded-full bg-yellow-100 text-yellow-600">
+                  <div className="p-2 sm:p-3 rounded-full bg-purple-100 text-purple-600">
                     <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                     </svg>
                   </div>
                   <div className="ml-3 sm:ml-4">
@@ -252,7 +252,7 @@ const StaffDashboard = () => {
                   </div>
                 </div>
                 <button 
-                  className="mt-3 w-full py-1.5 sm:py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs sm:text-sm font-medium rounded-lg"
+                  className="mt-3 w-full py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-medium rounded-lg"
                   onClick={() => setActiveFilter('siap-kirim')}
                 >
                   Lihat Pesanan
