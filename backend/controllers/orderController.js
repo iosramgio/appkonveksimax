@@ -75,160 +75,82 @@ const createOrder = async (req, res) => {
       const product = await Product.findById(group.product);
 
       if (!product) {
-        return res
-          .status(400)
-          .json({ message: `Product not found: ${group.product}` });
+        return res.status(400).json({ message: `Product not found: ${group.product}` });
       }
 
       if (!product.availability) {
-        return res
-          .status(400)
-          .json({ message: `Product is not available: ${product.name}` });
+        return res.status(400).json({ message: `Product is not available: ${product.name}` });
       }
 
-      // Calculate total quantity for this group
       const totalQuantity = Object.values(group.sizes).reduce((sum, qty) => sum + qty, 0);
-
-      // Find the matching SKU (using the first size as reference)
       const firstSize = Object.keys(group.sizes)[0];
       
-      // Find the color and material objects
-      let colorObj, materialObj;
-      
-      // Handle color object or ID
-      if (typeof group.color === 'object' && group.color !== null) {
-        colorObj = group.color;
-      } else {
-        colorObj = product.colors.find(c => 
-          c._id.toString() === group.color || c.name === group.color
-        );
-        if (!colorObj) {
-          return res.status(400).json({ message: `Invalid color for product: ${product.name}` });
-        }
+      const colorObj = product.colors.find(c => c.name.toLowerCase() === group.color.toLowerCase());
+      const materialObj = product.materials.find(m => m.name.toLowerCase() === group.material.toLowerCase());
+
+      if (!colorObj || !materialObj) {
+        return res.status(400).json({ message: `Invalid color or material for product: ${product.name}` });
       }
       
-      // Handle material object or ID
-      if (typeof group.material === 'object' && group.material !== null) {
-        materialObj = group.material;
-      } else {
-        materialObj = product.materials.find(m => 
-          m._id.toString() === group.material || m.name === group.material
-        );
-        if (!materialObj) {
-          return res.status(400).json({ message: `Invalid material for product: ${product.name}` });
-        }
-      }
-      
-      const sku = product.skus.find(
+      const skuObject = product.skus.find(
         (s) =>
           s.size === firstSize &&
-          s.color === (colorObj.name || colorObj) &&
-          s.material === (materialObj.name || materialObj)
+          s.color.toLowerCase() === colorObj.name.toLowerCase() &&
+          s.material.toLowerCase() === materialObj.name.toLowerCase()
       );
 
-      if (!sku) {
-        return res
-          .status(400)
-          .json({
-            message: `Invalid combination for product: ${product.name}`,
-          });
+      if (!skuObject) {
+        console.error(`CRITICAL: SKU object not found for product ${product.name} (Code: ${product.productCode}). Combination: Size=${firstSize}, Color=${colorObj.name}, Material=${materialObj.name}`);
+        return res.status(400).json({
+          message: `Kombinasi untuk produk ${product.name} tidak tersedia. Pastikan produk memiliki varian ini.`,
+        });
       }
 
-      // Ambil harga dari produk utama (product.basePrice dan product.dozenPrice)
       const basePriceFromProduct = Number(product.basePrice);
-      const dozenPriceFromProduct = Number(product.dozenPrice); // Ini adalah total harga untuk 1 lusin
-
-      if (isNaN(basePriceFromProduct)) {
-        // Jika product.basePrice tidak ada atau bukan angka, ini adalah masalah data produk utama
-        console.error(`FATAL (Customer Order): Product ${product.name} (ID: ${product._id}) is MISSING a valid 'basePrice'. Please add 'basePrice' to this product in the database.`);
-        // Untuk pelanggan, kita mungkin tidak ingin langsung mengembalikan 500, tapi ini critical.
-        // Bisa jadi fallback ke harga 0 atau error yang lebih informatif ke pelanggan.
-        // Untuk sekarang, kita akan mengembalikan error agar masalah data terlihat.
-        return res.status(400).json({ message: `Product ${product.name} is currently unavailable for order due to missing price information.`});
-      }
-      
-      if (product.dozenPrice !== undefined && (isNaN(dozenPriceFromProduct) || dozenPriceFromProduct < 0)) {
-         console.warn(`WARNING (Customer Order): Product ${product.name} (ID: ${product._id}) has an INVALID 'dozenPrice'. Using basePrice only for now.`);
-      }
+      const dozenPriceFromProduct = Number(product.dozenPrice);
 
       let calculatedUnitPrice;
-      // Cek jika ada harga lusinan yang valid dan kuantitas memungkinkan untuk harga lusinan
       if (totalQuantity >= 12 && !isNaN(dozenPriceFromProduct) && dozenPriceFromProduct > 0) {
-        calculatedUnitPrice = dozenPriceFromProduct / 12; // Harga satuan jika beli lusinan
+        calculatedUnitPrice = dozenPriceFromProduct / 12;
       } else {
-        calculatedUnitPrice = basePriceFromProduct; // Harga satuan normal dari produk
+        calculatedUnitPrice = basePriceFromProduct;
       }
       
-      const unitPrice = calculatedUnitPrice; // unitPrice final yang akan digunakan
-
-      // Calculate item total
+      const unitPrice = calculatedUnitPrice;
       const itemTotal = unitPrice * totalQuantity;
       subtotal += itemTotal;
 
-      // Add custom design fee if applicable
       let designFee = 0;
       if (group.customDesign && group.customDesign.isCustom) {
         designFee = product.customizationFee;
         subtotal += designFee;
       }
 
-      // Create sizeBreakdown array
       const sizeBreakdown = Object.entries(group.sizes).map(([size, quantity]) => {
         const sizeObj = product.sizes.find(s => s.size === size) || {};
-        return {
-          size,
-          quantity,
-          additionalPrice: sizeObj.additionalPrice || 0
-        };
+        return { size, quantity, additionalPrice: sizeObj.additionalPrice || 0 };
       });
 
-      // Extract product images (limited to first 2 for efficiency)
-      const productImages = product.images && product.images.length > 0 
-        ? product.images.slice(0, 2).map(img => ({
-            url: img.url,
-            public_id: img.public_id
-          }))
-        : [];
+      const productImages = product.images ? product.images.slice(0, 2).map(img => ({ url: img.url, public_id: img.public_id })) : [];
 
-      // Add to order items
       orderItems.push({
         product: product._id,
-        sku: sku.sku,
-        color: {
-          name: colorObj.name,
-          code: colorObj.code,
-          available: colorObj.available !== undefined ? colorObj.available : true,
-          _id: colorObj._id ? colorObj._id.toString() : undefined
-        },
-        material: {
-          name: materialObj.name,
-          additionalPrice: materialObj.additionalPrice || 0,
-          available: materialObj.available !== undefined ? materialObj.available : true,
-          _id: materialObj._id ? materialObj._id.toString() : undefined
-        },
+        sku: skuObject.sku, // Use the definitive SKU
+        color: { name: colorObj.name, code: colorObj.code, available: colorObj.available },
+        material: { name: materialObj.name, additionalPrice: materialObj.additionalPrice, available: materialObj.available },
         quantity: totalQuantity,
-        sizeBreakdown: sizeBreakdown,
+        sizeBreakdown,
         unitPrice,
-        dozenPrice: (!isNaN(dozenPriceFromProduct) && dozenPriceFromProduct > 0) ? dozenPriceFromProduct : 0,
+        dozenPrice: dozenPriceFromProduct || 0,
         customDesign: {
           isCustom: group.customDesign?.isCustom || false,
           designUrl: group.customDesign?.designUrl || "",
-          designFee: designFee,
+          designFee,
           notes: group.customDesign?.notes || ""
         },
         notes: group.notes || "",
-        productDetails: {
-          name: product.name,
-          description: product.description,
-          category: product.category,
-          images: productImages
-        },
-        priceDetails: group.priceDetails && typeof group.priceDetails === 'object' ? group.priceDetails : {
-          subtotal: itemTotal,
-          total: itemTotal,
-          discountAmount: 0,
-          discountPercentage: 0,
-        },
+        productDetails: { name: product.name, description: product.description, category: product.category, images: productImages },
+        priceDetails: { subtotal: itemTotal, total: itemTotal, discountAmount: 0, discountPercentage: 0 }
       });
     }
 
@@ -395,154 +317,61 @@ const createManualOrder = async (req, res) => {
 
     for (const item of items) {
       const product = await Product.findById(item.product);
-
       if (!product) {
-        return res
-          .status(400)
-          .json({ message: `Product not found: ${item.product}` });
+        return res.status(404).json({ message: `Product not found: ${item.product}` });
       }
 
-      // Find the color and material objects
-      let colorObj, materialObj;
-      
-      // Handle color object or ID
-      if (typeof item.color === 'object' && item.color !== null) {
-        colorObj = item.color;
-      } else {
-        colorObj = product.colors.find(c => 
-          c._id.toString() === item.color || c.name === item.color
-        );
-        if (!colorObj) {
-          return res.status(400).json({ message: `Invalid color for product: ${product.name}` });
-        }
-      }
-      
-      // Handle material object or ID
-      if (typeof item.material === 'object' && item.material !== null) {
-        materialObj = item.material;
-      } else {
-        materialObj = product.materials.find(m => 
-          m._id.toString() === item.material || m.name === item.material
-        );
-        if (!materialObj) {
-          return res.status(400).json({ message: `Invalid material for product: ${product.name}` });
-        }
+      // Find color and material objects
+      const colorObj = product.colors.find(c => c.name.toLowerCase() === item.color.name.toLowerCase());
+      const materialObj = product.materials.find(m => m.name.toLowerCase() === item.material.name.toLowerCase());
+
+      if (!colorObj || !materialObj) {
+        return res.status(400).json({ message: `Invalid color or material for product: ${product.name}` });
       }
 
-      // Mengambil ukuran dari item.sizeBreakdown jika ada, jika tidak, coba item.size (fallback)
-      const itemSize = item.sizeBreakdown && item.sizeBreakdown.length > 0 
-        ? item.sizeBreakdown[0].size 
-        : item.size; 
-
-      if (!itemSize) {
+      // Determine the size for SKU lookup
+      const lookupSize = item.sizeBreakdown && item.sizeBreakdown.length > 0 ? item.sizeBreakdown[0].size : item.size;
+      if (!lookupSize) {
         return res.status(400).json({ message: `Missing size information for product: ${product.name}` });
       }
 
-      // Find the matching SKU
-      const sku = product.skus.find(
+      // Find the definitive SKU from the product's pre-generated list
+      const skuObject = product.skus.find(
         (s) =>
-          s.size === itemSize && // Menggunakan itemSize yang sudah ditentukan
-          s.color === (colorObj.name || colorObj) &&
-          s.material === (materialObj.name || materialObj)
+          s.size === lookupSize &&
+          s.color.toLowerCase() === colorObj.name.toLowerCase() &&
+          s.material.toLowerCase() === materialObj.name.toLowerCase()
       );
 
-      if (!sku) {
-        return res
-          .status(400)
-          .json({
-            message: `Invalid combination for product: ${product.name}`,
-          });
+      // If no matching SKU is found in the product, it's a critical error.
+      if (!skuObject) {
+        console.error(`CRITICAL: SKU object not found for product ${product.name} (Code: ${product.productCode}). Combination: Size=${lookupSize}, Color=${colorObj.name}, Material=${materialObj.name}`);
+        return res.status(400).json({
+          message: `Kombinasi produk tidak tersedia untuk ${product.name}. Pastikan produk memiliki varian ini.`,
+        });
       }
 
-      // Pastikan quantity adalah angka
+      const finalSku = skuObject.sku;
       const quantity = Number(item.quantity);
       if (isNaN(quantity) || quantity <= 0) {
         return res.status(400).json({ message: `Invalid quantity for product: ${product.name}` });
       }
-
-      // Ambil harga dari produk utama (product.basePrice dan product.dozenPrice)
-      const basePriceFromProduct = Number(product.basePrice);
-      const dozenPriceFromProduct = Number(product.dozenPrice); // Ini adalah total harga untuk 1 lusin
-
-      if (isNaN(basePriceFromProduct)) {
-        // Jika product.basePrice tidak ada atau bukan angka, ini adalah masalah data produk utama
-        console.error(`FATAL: Product ${product.name} (ID: ${product._id}) is MISSING a valid 'basePrice'. Please add 'basePrice' to this product in the database.`);
-        return res.status(500).json({ message: `Internal error: Product ${product.name} is missing base price information.`});
-      }
       
-      // dozenPriceFromProduct bisa jadi 0 atau NaN jika tidak ada harga lusinan, ini akan ditangani di bawah
-      if (product.dozenPrice !== undefined && (isNaN(dozenPriceFromProduct) || dozenPriceFromProduct < 0)) {
-         console.warn(`WARNING: Product ${product.name} (ID: ${product._id}) has an INVALID 'dozenPrice'. Please check this product in the database. Using basePrice only for now.`);
-      }
-
-      let calculatedUnitPrice;
-      // Cek jika ada harga lusinan yang valid dan kuantitas memungkinkan untuk harga lusinan
-      if (quantity >= 12 && !isNaN(dozenPriceFromProduct) && dozenPriceFromProduct > 0) {
-        calculatedUnitPrice = dozenPriceFromProduct / 12; // Harga satuan jika beli lusinan
-      } else {
-        calculatedUnitPrice = basePriceFromProduct; // Harga satuan normal dari produk
-      }
-      
-      // Seharusnya calculatedUnitPrice sudah pasti angka sekarang jika basePriceFromProduct valid.
-      // Tidak perlu fallback ke 0 kecuali basePriceFromProduct sendiri tidak valid (sudah ditangani di atas).
-      
-      const unitPrice = calculatedUnitPrice; // unitPrice final yang akan digunakan
-
-      // Calculate item total - INI AKAN DIGANTI
-      // const itemTotal = unitPrice * quantity;
-      // if (isNaN(itemTotal)) {
-      //     // Kondisi ini seharusnya tidak terjadi jika unitPrice sudah divalidasi
-      //     console.error(`itemTotal became NaN for product ${product.name}. unitPrice: ${unitPrice}, quantity: ${quantity}`);
-      //     return res.status(500).json({ message: `Internal error calculating total for item: ${product.name}`});
-      // }
-      // subtotal += itemTotal; // Akumulasi subtotal dipindahkan setelah loop
-
-      // Add custom design fee if applicable - INI MUNGKIN JUGA TIDAK PERLU JIKA SUDAH DI PRICE DETAILS
-      let designFee = 0;
-      if (item.customDesign && item.customDesign.isCustom) {
-        designFee = product.customizationFee; // Ini adalah default fee dari produk
-        // Jika frontend mengirim item.priceDetails.customDesignFee, itu mungkin lebih akurat
-        // Atau, jika item.priceDetails.total sudah termasuk design fee, maka baris ini & penambahan ke subtotal tidak perlu
-      }
-
-      // Get size details with additional price
-      const sizeObj = product.sizes.find(s => s.size === itemSize) || {};
-      
-      // Extract product images (limited to first 2 for efficiency)
       const productImages = product.images && product.images.length > 0 
-        ? product.images.slice(0, 2).map(img => ({
-            url: img.url,
-            public_id: img.public_id
-          }))
+        ? product.images.slice(0, 2).map(img => ({ url: img.url, public_id: img.public_id }))
         : [];
 
-      // Add to order items
       orderItems.push({
         product: product._id,
-        sku: sku.sku,
-        color: {
-          name: colorObj.name,
-          code: colorObj.code,
-          available: colorObj.available !== undefined ? colorObj.available : true,
-          _id: colorObj._id ? colorObj._id.toString() : undefined
-        },
-        material: {
-          name: materialObj.name,
-          additionalPrice: materialObj.additionalPrice || 0,
-          available: materialObj.available !== undefined ? materialObj.available : true,
-          _id: materialObj._id ? materialObj._id.toString() : undefined
-        },
-        quantity: quantity,
-        sizeBreakdown: item.sizeBreakdown || [{ size: itemSize, quantity: quantity, additionalPrice: (sizeObj.additionalPrice || 0) }],
-        unitPrice: unitPrice, // Tetap simpan unitPrice dasar untuk referensi jika perlu
-        dozenPrice: (!isNaN(dozenPriceFromProduct) && dozenPriceFromProduct > 0) ? dozenPriceFromProduct : 0, // Menyimpan dozenPrice produk (total 1 lusin)
-        priceDetails: item.priceDetails, // Gunakan priceDetails dari frontend SEPENUHNYA tanpa validasi atau perhitungan ulang
-        customDesign: {
-          isCustom: item.customDesign?.isCustom || false,
-          designUrl: item.customDesign?.designUrl || "",
-          designFee: item.priceDetails?.customDesignFee || (item.customDesign?.isCustom ? product.customizationFee : 0), // Ambil dari priceDetails jika ada
-          notes: item.customDesign?.notes || ""
-        },
+        sku: finalSku, // Use the correct, found SKU
+        color: { name: colorObj.name, code: colorObj.code, available: colorObj.available },
+        material: { name: materialObj.name, additionalPrice: materialObj.additionalPrice, available: materialObj.available },
+        quantity,
+        sizeBreakdown: item.sizeBreakdown,
+        unitPrice: item.unitPrice,
+        dozenPrice: item.dozenPrice,
+        priceDetails: item.priceDetails,
+        customDesign: item.customDesign,
         notes: item.notes || "",
         productDetails: {
           name: product.name,

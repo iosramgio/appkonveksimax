@@ -9,7 +9,15 @@ import Button from '../../components/common/Button';
 import { formatCurrency } from '../../utils/formatter';
 
 const OwnerDashboard = () => {
-  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardData, setDashboardData] = useState({
+    topProducts: [],
+    productionStatus: {},
+    summaryReport: {},
+    recentActivities: [],
+    materialUsage: [],
+    colorUsage: [],
+    topSkus: [],
+  });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
@@ -185,6 +193,31 @@ const OwnerDashboard = () => {
             </div>
           </div>
           
+          {/* Usage Reports: Material, Color, and SKU */}
+          <div className="mt-6 bg-gray-50 p-4 sm:p-6 rounded-lg">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Laporan Penggunaan</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ReportListCard 
+                title="Bahan Paling Sering Digunakan" 
+                data={dashboardData.materialUsage} 
+                emptyMessage="Belum ada data bahan."
+              />
+              <ReportListCard 
+                title="Warna Paling Sering Digunakan" 
+                data={dashboardData.colorUsage}
+                showColor={true}
+                emptyMessage="Belum ada data warna."
+              />
+              <div className="lg:col-span-2">
+                <ReportListCard
+                  title="SKU Paling Laris"
+                  data={dashboardData.topSkus}
+                  emptyMessage="Belum ada data SKU."
+                />
+              </div>
+            </div>
+          </div>
+          
           {/* Grid untuk Status Produksi dan Laporan Ringkas */}
           <div className="mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Kolom Status Produksi */}
@@ -281,7 +314,34 @@ const OwnerDashboard = () => {
   );
 };
 
-// Helper functions
+// Helper components and functions
+
+const ReportListCard = ({ title, data, showColor = false, emptyMessage = "Tidak ada data" }) => (
+  <div className="bg-white p-4 rounded-lg shadow-md h-full">
+    <h3 className="text-lg font-semibold text-gray-800 mb-3">{title}</h3>
+    <div className="space-y-2">
+      {data && data.length > 0 ? (
+        data.map((item, index) => (
+          <div key={index} className="flex justify-between items-center text-sm">
+            <span className="text-gray-600 flex items-center">
+              {showColor && item.code && (
+                <span
+                  className="w-4 h-4 rounded-full mr-2 border border-gray-300"
+                  style={{ backgroundColor: item.code }}
+                ></span>
+              )}
+              {item.name}
+            </span>
+            <span className="font-medium text-gray-800">{item.count}</span>
+          </div>
+        ))
+      ) : (
+        <p className="text-sm text-gray-500">{emptyMessage}</p>
+      )}
+    </div>
+  </div>
+);
+
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 12) return 'Pagi';

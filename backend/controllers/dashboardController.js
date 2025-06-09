@@ -39,45 +39,45 @@ const getAdminDashboard = async (req, res) => {
       .limit(10)
       .populate('user', 'name');
 
-    // Get data from previous week for comparison
+    // Get data from previous month for comparison
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const previousWeekStart = new Date(today);
-    previousWeekStart.setDate(today.getDate() - 7);
+    const previousMonthStart = new Date(today);
+    previousMonthStart.setDate(today.getDate() - 30);
     
-    const previousWeekSales = await Order.aggregate([
+    const previousMonthSales = await Order.aggregate([
       { 
         $match: { 
-          createdAt: { $gte: previousWeekStart, $lt: today },
+          createdAt: { $gte: previousMonthStart, $lt: today },
           status: { $in: ['Selesai Produksi', 'Siap Kirim', 'Selesai'] }
         }
       },
       { $group: { _id: null, total: { $sum: "$paymentDetails.total" } } }
     ]);
 
-    const previousWeekOrders = await Order.countDocuments({
-      createdAt: { $gte: previousWeekStart, $lt: today }
+    const previousMonthOrders = await Order.countDocuments({
+      createdAt: { $gte: previousMonthStart, $lt: today }
     });
 
     // Calculate growth percentages
     let salesGrowth = 0;
-    if (previousWeekSales[0]?.total > 0) {
-      salesGrowth = Math.round(((totalSales[0]?.total || 0) - previousWeekSales[0].total) / previousWeekSales[0].total * 100);
+    if (previousMonthSales[0]?.total > 0) {
+      salesGrowth = Math.round(((totalSales[0]?.total || 0) - previousMonthSales[0].total) / previousMonthSales[0].total * 100);
     }
 
     let ordersGrowth = 0;
-    if (previousWeekOrders > 0) {
-      ordersGrowth = Math.round(((totalOrders - previousWeekOrders) / previousWeekOrders) * 100);
+    if (previousMonthOrders > 0) {
+      ordersGrowth = Math.round(((totalOrders - previousMonthOrders) / previousMonthOrders) * 100);
     }
 
     // Calculate average order value
     const averageOrderValue = totalOrders > 0 ? Math.round(totalSales[0]?.total / totalOrders) : 0;
 
-    // Get sales chart data (last 7 days)
+    // Get sales chart data (last 30 days)
     const salesChartData = await Order.aggregate([
       {
         $match: {
-          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
           status: { $in: ['Selesai Produksi', 'Siap Kirim', 'Selesai'] }
         }
       },
@@ -406,91 +406,114 @@ const getOwnerDashboard = async (req, res) => {
   try {
     // Define date ranges for current and previous period (e.g., last 7 days)
     const today = new Date();
-    const N = 7; // Number of days for the period
+    const completedStatuses = ['Selesai Produksi', 'Siap Kirim', 'Selesai'];
 
+    // Get total sales
+    const allTimeSalesAggregation = await Order.aggregate([
+      { $match: { status: { $in: completedStatuses } } }, 
+      { $group: { _id: null, total: { $sum: "$paymentDetails.total" } } }
+    ]);
+    const actualTotalSales = allTimeSalesAggregation[0]?.total || 0;
+
+    // Get current period sales
     const currentPeriodEndDate = new Date(today);
     currentPeriodEndDate.setHours(23, 59, 59, 999);
     const currentPeriodStartDate = new Date(today);
-    currentPeriodStartDate.setDate(today.getDate() - (N - 1)); 
+    currentPeriodStartDate.setDate(today.getDate() - 29); // For last 30 days
     currentPeriodStartDate.setHours(0, 0, 0, 0);
 
+    const currentSalesAggregation = await Order.aggregate([
+      { 
+        $match: { 
+          status: { $in: completedStatuses },
+          createdAt: { $gte: currentPeriodStartDate, $lte: currentPeriodEndDate } 
+        } 
+      },
+      { $group: { _id: null, total: { $sum: "$paymentDetails.total" }, count: { $sum: 1 } } }
+    ]);
+
+    // Get previous period sales
     const previousPeriodEndDate = new Date(currentPeriodStartDate);
     previousPeriodEndDate.setDate(previousPeriodEndDate.getDate() - 1);
     previousPeriodEndDate.setHours(23, 59, 59, 999);
     const previousPeriodStartDate = new Date(previousPeriodEndDate);
-    previousPeriodStartDate.setDate(previousPeriodEndDate.getDate() - (N - 1));
+    previousPeriodStartDate.setDate(previousPeriodEndDate.getDate() - 29);
     previousPeriodStartDate.setHours(0, 0, 0, 0);
 
-    // Get total sales for current period
-    const currentSalesAggregation = await Order.aggregate([
-      { $match: { status: "Selesai", createdAt: { $gte: currentPeriodStartDate, $lte: currentPeriodEndDate } } },
-      { $group: { _id: null, total: { $sum: "$paymentDetails.total" }, count: { $sum: 1 } } }
-    ]);
-    const currentPeriodSales = currentSalesAggregation[0]?.total || 0;
-    const currentPeriodOrderCount = currentSalesAggregation[0]?.count || 0;
-
-    // Get total sales for previous period
     const previousSalesAggregation = await Order.aggregate([
-      { $match: { status: "Selesai", createdAt: { $gte: previousPeriodStartDate, $lte: previousPeriodEndDate } } },
+      { 
+        $match: { 
+          status: { $in: completedStatuses },
+          createdAt: { $gte: previousPeriodStartDate, $lte: previousPeriodEndDate } 
+        } 
+      },
       { $group: { _id: null, total: { $sum: "$paymentDetails.total" }, count: { $sum: 1 } } }
     ]);
-    const previousPeriodSales = previousSalesAggregation[0]?.total || 0;
-    const previousPeriodOrderCount = previousSalesAggregation[0]?.count || 0;
 
     // Calculate growth percentages
+    const currentPeriodSales = currentSalesAggregation[0]?.total || 0;
+    const previousPeriodSales = previousSalesAggregation[0]?.total || 0;
+    
     let salesGrowthPercentage = 0;
     if (previousPeriodSales > 0) {
       salesGrowthPercentage = Math.round(((currentPeriodSales - previousPeriodSales) / previousPeriodSales) * 100);
     } else if (currentPeriodSales > 0) {
-      salesGrowthPercentage = 100; // Infinite growth if previous was 0 and current is > 0
+      salesGrowthPercentage = 100;
     }
 
-    let ordersGrowthPercentage = 0;
-    if (previousPeriodOrderCount > 0) {
-      ordersGrowthPercentage = Math.round(((currentPeriodOrderCount - previousPeriodOrderCount) / previousPeriodOrderCount) * 100);
-    } else if (currentPeriodOrderCount > 0) {
-      ordersGrowthPercentage = 100; // Infinite growth
-    }
-
-    // Fallback to overall total sales if not focusing on period-based for main display
-    // For the main "Total Penjualan" card, let's use the all-time completed sales for now as previously established
-    const allTimeSalesAggregation = await Order.aggregate([
-        { $match: { status: "Selesai" } }, 
-        { $group: { _id: null, total: { $sum: "$paymentDetails.total" } } }
-      ]);
-    const actualTotalSales = allTimeSalesAggregation[0]?.total || 0;
-
-    const totalOrders = await Order.countDocuments({ status: "Selesai" }); // Count of all completed orders for AOV
+    // Rest of the dashboard calculations...
+    const totalOrders = await Order.countDocuments({ 
+      status: { $in: ['Selesai Produksi', 'Siap Kirim', 'Selesai'] } 
+    });
     const pendingOrders = await Order.countDocuments({ status: "Pesanan Diterima" });
     const totalCustomers = await User.countDocuments({ role: 'customer' });
     const totalProducts = await Product.countDocuments();
     const calculatedAverageOrderValue = totalOrders > 0 ? Math.round(actualTotalSales / totalOrders) : 0;
 
-    // Get sales chart data (last 30 days - daily breakdown)
-    const salesChartData = await Order.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
-          status: "Selesai"
-        }
-      },
+    // --- Generate Sales Chart Data (to match reports) ---
+    const chartEndDate = new Date();
+    const chartStartDate = new Date();
+    chartStartDate.setDate(chartEndDate.getDate() - 29);
+    chartStartDate.setHours(0, 0, 0, 0);
+
+    const chartMatchFilter = {
+      status: { $in: completedStatuses },
+      createdAt: { $gte: chartStartDate, $lte: chartEndDate }
+    };
+
+    const salesAggregation = await Order.aggregate([
+      { $match: chartMatchFilter },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Jakarta" } },
           dailyRevenue: { $sum: "$paymentDetails.total" },
           dailyOrderCount: { $sum: 1 }
         }
       },
-      {
-        $project: {
-          _id: 0,
-          date: "$_id",
-          dailyRevenue: 1,
-          dailyOrderCount: 1
-        }
-      },
-      { $sort: { date: 1 } }
+      { $sort: { _id: 1 } }
     ]);
+
+    const salesDataByDate = salesAggregation.reduce((acc, item) => {
+      acc[item._id] = item;
+      return acc;
+    }, {});
+
+    const salesChartData = [];
+    let loopDate = new Date(chartStartDate);
+
+    while (loopDate <= chartEndDate) {
+      const dateStr = loopDate.toISOString().split('T')[0];
+      const existingData = salesDataByDate[dateStr] || { dailyRevenue: 0, dailyOrderCount: 0 };
+      
+      salesChartData.push({
+        date: dateStr,
+        dailyRevenue: existingData.dailyRevenue,
+        dailyOrderCount: existingData.dailyOrderCount
+      });
+
+      loopDate.setDate(loopDate.getDate() + 1);
+    }
+    // --- End of Sales Chart Data Generation ---
 
     // Get top selling products
     const topProducts = await Order.aggregate([
@@ -615,6 +638,67 @@ const getOwnerDashboard = async (req, res) => {
     };
     // --- End of Summary Report Data ---
 
+    // --- Material & Color Usage Report ---
+    const materialUsage = await Order.aggregate([
+      { $match: { status: { $in: completedStatuses } } },
+      { $unwind: "$items" },
+      { $group: { _id: "$items.material.name", totalUsed: { $sum: "$items.quantity" } } },
+      { $sort: { totalUsed: -1 } },
+      { $limit: 7 },
+      { $project: { _id: 0, name: "$_id", count: "$totalUsed" } }
+    ]);
+
+    const colorUsage = await Order.aggregate([
+      { $match: { status: { $in: completedStatuses } } },
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: { name: "$items.color.name", code: "$items.color.code" },
+          totalUsed: { $sum: "$items.quantity" }
+        }
+      },
+      { $sort: { totalUsed: -1 } },
+      { $limit: 7 },
+      {
+        $project: {
+          _id: 0,
+          name: "$_id.name",
+          code: "$_id.code",
+          count: "$totalUsed"
+        }
+      }
+    ]);
+
+    const topSkus = await Order.aggregate([
+      { $match: { status: { $in: completedStatuses } } },
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: {
+            sku: {
+              $cond: {
+                if: { $gt: [{ $strLenCP: "$items.sku" }, 40] }, // Check if SKU is long (likely contains ObjectID)
+                then: {
+                  $let: {
+                    vars: {
+                      parts: { $split: ["$items.sku", "-"] }
+                    },
+                    in: { $concat: ["...", "-", { $arrayElemAt: ["$$parts", 1] }, "-", { $arrayElemAt: ["$$parts", 2] }, "-", { $arrayElemAt: ["$$parts", 3] }] }
+                  }
+                },
+                else: "$items.sku"
+              }
+            }
+          },
+          totalSold: { $sum: "$items.quantity" }
+        }
+      },
+      { $sort: { totalSold: -1 } },
+      { $limit: 7 },
+      { $project: { _id: 0, name: "$_id.sku", count: "$totalSold" } }
+    ]);
+    // --- End of Material & Color Usage Report ---
+
     // --- Get Recent Activities ---
     const recentActivitiesRaw = await ActivityLog.find()
       .sort({ createdAt: -1 })
@@ -646,8 +730,8 @@ const getOwnerDashboard = async (req, res) => {
       stats: {
         totalSales: actualTotalSales,
         salesGrowth: salesGrowthPercentage,
-        totalOrders: await Order.countDocuments(),
-        ordersGrowth: ordersGrowthPercentage,
+        totalOrders: totalOrders,
+        ordersGrowth: salesGrowthPercentage,
         pendingOrders,
         averageOrderValue: calculatedAverageOrderValue,
         totalCustomers,
@@ -658,7 +742,10 @@ const getOwnerDashboard = async (req, res) => {
       businessMetrics,
       productionStatus: productionStatusData,
       summaryReport: summaryReportData,
-      recentActivities: recentActivitiesFormatted
+      recentActivities: recentActivitiesFormatted,
+      materialUsage,
+      colorUsage,
+      topSkus
     });
   } catch (error) {
     console.error("Get owner dashboard error:", error);

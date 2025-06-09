@@ -173,7 +173,7 @@ const AdminDashboard = () => {
                 dashboardData.salesChartData?.map(item => ({
                   date: item._id,
                   dailyRevenue: item.total,
-                  dailyOrderCount: item.orderCount || 0
+                  dailyOrderCount: item.orderCount
                 })) || []
               } />
             </div>

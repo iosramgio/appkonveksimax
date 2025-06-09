@@ -1056,45 +1056,6 @@ const OrderDetail = () => {
         </div>
       </div>
 
-      {/* Payment History Section */}
-      {payments.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Riwayat Pembayaran</h3>
-            <div className="space-y-4">
-              {payments.map((payment, index) => (
-                <div key={payment._id} className="border-b last:border-b-0 pb-4 last:pb-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">
-                        {payment.paymentType === 'downPayment' ? 'Uang Muka (DP)' :
-                         payment.paymentType === 'remainingPayment' ? 'Pelunasan' :
-                         'Pembayaran Penuh'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {formatDate(payment.createdAt)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatCurrency(payment.amount)}</p>
-                      <p className={`text-sm ${
-                        payment.status === 'success' ? 'text-green-600' :
-                        payment.status === 'pending' ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>
-                        {payment.status === 'success' ? 'Berhasil' :
-                         payment.status === 'pending' ? 'Menunggu Pembayaran' :
-                         'Gagal'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Receipt Modal */}
       <Modal
         isOpen={showReceiptModal}

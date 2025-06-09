@@ -47,9 +47,9 @@ const calculatePreviousPeriod = (currentStart, currentEnd, period) => {
 // Helper function to calculate growth percentage
 const calculateGrowth = (current, previous) => {
   if (previous === 0) {
-    return current > 0 ? 100 : 0; // Or null/Infinity, depending on desired representation
+    return current > 0 ? 100 : 0;
   }
-  return parseFloat((((current - previous) / previous) * 100).toFixed(2));
+  return Math.round(((current - previous) / previous) * 100); // Changed to Math.round for consistency
 };
 
 /**
@@ -72,27 +72,46 @@ const generateSalesReport = async (req, res) => {
       return res.status(400).json({ message: "Start date and end date are required" });
     }
 
-    const startForChartTablePeriod = new Date(queryStartDate);
-    const endForChartTablePeriod = new Date(queryEndDate);
-    endForChartTablePeriod.setHours(23, 59, 59, 999);
+    // --- LOGGING FOR DEBUGGING ---
+    console.log(`[ReportController] Received raw dates - Start: ${queryStartDate}, End: ${queryEndDate}`);
+    // -----------------------------
+
+    // FIX: More robust date parsing that respects Asia/Jakarta timezone
+    const startForChartTablePeriod = new Date(`${queryStartDate}T00:00:00.000+07:00`);
+    const endForChartTablePeriod = new Date(`${queryEndDate}T23:59:59.999+07:00`);
 
     if (isNaN(startForChartTablePeriod.getTime()) || isNaN(endForChartTablePeriod.getTime())) {
       return res.status(400).json({ message: "Invalid date format for chart/table period" });
     }
 
-    // Filter for the user-selected period (for chart/table data)
+    const completedStatuses = ['Selesai Produksi', 'Siap Kirim', 'Selesai'];
+    
     const chartTablePeriodFilter = {
-      createdAt: { $gte: startForChartTablePeriod, $lte: endForChartTablePeriod },
-      status: "Selesai",
+      createdAt: { 
+        $gte: startForChartTablePeriod, 
+        $lte: endForChartTablePeriod 
+      },
+      status: { $in: completedStatuses }
     };
-    // This info is passed to helpers so they can calculate their own period-specific growth IF their summary needs it.
-    // However, the main summary cards will use a separate fixed growth calculation.
-    const chartTablePeriodInfo = { startDate: startForChartTablePeriod, endDate: endForChartTablePeriod, period };
+
+    console.log("[ReportController] Using date filter:", {
+      startDate: startForChartTablePeriod.toISOString(),
+      endDate: endForChartTablePeriod.toISOString(),
+      filter: JSON.stringify(chartTablePeriodFilter)
+    });
+
+    const chartTablePeriodInfo = { 
+      startDate: startForChartTablePeriod, 
+      endDate: endForChartTablePeriod, 
+      period 
+    };
 
     // --- Data for Chart/Table (based on selected Harian/Mingguan/Bulanan/Tahunan filter) ---
     let chartTableRawData = {}; 
-    if (period === "daily" || period === "weekly" || period === "monthly") {
+    if (period === "daily" || period === "weekly") {
       chartTableRawData = await generateDailySalesReport(chartTablePeriodFilter, productCategory, chartTablePeriodInfo);
+    } else if (period === "monthly") {
+      chartTableRawData = await generateMonthlySalesReport(chartTablePeriodFilter, productCategory, chartTablePeriodInfo);
     } else if (period === "yearly") {
       chartTableRawData = await generateYearlySalesReport(chartTablePeriodFilter, productCategory, chartTablePeriodInfo);
     } else {
@@ -109,13 +128,13 @@ const generateSalesReport = async (req, res) => {
 
     // --- All-Time Stats for Overall Summary Cards (Top Cards) ---
     const allTimeSalesAgg = await Order.aggregate([
-        { $match: { status: "Selesai" } }, 
+        { $match: { status: { $in: completedStatuses } } }, 
         { $group: { _id: null, total: { $sum: "$paymentDetails.total" } } }
-      ]);
+    ]);
     const allTimeTotalSales = allTimeSalesAgg[0]?.total || 0;
 
-    const allTimeTotalOrders = await Order.countDocuments({ status: "Selesai" });
-    const allTimeAverageOrderValue = allTimeTotalOrders > 0 ? (allTimeTotalSales / allTimeTotalOrders) : 0; // Keep precision for FE
+    const allTimeTotalOrders = await Order.countDocuments({ status: { $in: completedStatuses } });
+    const allTimeAverageOrderValue = allTimeTotalOrders > 0 ? (allTimeTotalSales / allTimeTotalOrders) : 0;
 
     // --- Dinamis Period Growth Calculation untuk KARTU RINGKASAN berdasarkan `period` dari req.query ---
     let growthPeriodDaysForCards;
@@ -155,10 +174,15 @@ const generateSalesReport = async (req, res) => {
     previousGrowthPeriodStart.setDate(previousGrowthPeriodEnd.getDate() - (growthPeriodDaysForCards - 1));
     previousGrowthPeriodStart.setHours(0, 0, 0, 0);
     
-    const growthMatchCriteria = { status: "Selesai" };
+    const growthMatchCriteria = { status: { $in: completedStatuses } };
 
     const currentGrowthAgg = await Order.aggregate([
-      { $match: { ...growthMatchCriteria, createdAt: { $gte: currentGrowthPeriodStart, $lte: currentGrowthPeriodEnd } } },
+      { $match: { 
+          ...growthMatchCriteria, 
+          status: { $in: completedStatuses },
+          createdAt: { $gte: currentGrowthPeriodStart, $lte: currentGrowthPeriodEnd } 
+        } 
+      },
       { $group: { _id: null, totalSales: { $sum: "$paymentDetails.total" }, count: { $sum: 1 } } }
     ]);
     const currentGrowthSales = currentGrowthAgg[0]?.totalSales || 0;
@@ -166,7 +190,12 @@ const generateSalesReport = async (req, res) => {
     const currentGrowthAOV = currentGrowthOrders > 0 ? (currentGrowthSales / currentGrowthOrders) : 0;
 
     const previousGrowthAgg = await Order.aggregate([
-      { $match: { ...growthMatchCriteria, createdAt: { $gte: previousGrowthPeriodStart, $lte: previousGrowthPeriodEnd } } },
+      { $match: { 
+          ...growthMatchCriteria, 
+          status: { $in: completedStatuses },
+          createdAt: { $gte: previousGrowthPeriodStart, $lte: previousGrowthPeriodEnd } 
+        } 
+      },
       { $group: { _id: null, totalSales: { $sum: "$paymentDetails.total" }, count: { $sum: 1 } } }
     ]);
     const previousGrowthSales = previousGrowthAgg[0]?.totalSales || 0;
@@ -296,128 +325,88 @@ const generateSalesReport = async (req, res) => {
  * @private
  */
 const generateDailySalesReport = async (filter, productCategory, currentPeriodInfo) => {
-  const matchStage = { ...filter }; // Filter for the current period
+  const matchStage = { ...filter };
 
-  // Add product category filter if provided
   if (productCategory) {
     matchStage["items.product.category"] = productCategory;
   }
 
-  // --- Current Period Aggregation ---
+  const getDayName = (date) => {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    return days[date.getUTCDay()];
+  };
+
   const currentPeriodAggregation = await Order.aggregate([
-    { $match: matchStage },
-    { $unwind: "$items" },
-    {
-      $lookup: {
-        from: "products",
-        localField: "items.product",
-        foreignField: "_id",
-        as: "productDetails",
-      },
+    { 
+      $match: matchStage
     },
-    { $unwind: "$productDetails" },
-    ...(productCategory
-      ? [{ $match: { "productDetails.category": productCategory } }]
-      : []),
     {
       $group: {
-        _id: { date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } } },
-        totalSales: { $sum: { $multiply: ["$items.unitPrice", "$items.quantity"] } },
-        totalOrders: { $addToSet: "$_id" },
-        totalItems: { $sum: "$items.quantity" },
-      },
+        _id: {
+          $dateToString: { 
+            format: "%Y-%m-%d", 
+            date: "$createdAt",
+            timezone: "Asia/Jakarta"
+          }
+        },
+        totalSales: { $sum: "$paymentDetails.total" },
+        totalOrders: { $sum: 1 },
+        totalItems: { $sum: { $sum: "$items.quantity" } }
+      }
     },
     {
       $project: {
         _id: 0,
-        date: "$_id.date",
+        date: "$_id",
         totalSales: 1,
-        totalOrders: { $size: "$totalOrders" },
-        totalItems: 1,
-      },
+        totalOrders: 1,
+        totalItems: 1
+      }
     },
-    { $sort: { date: 1 } },
+    { $sort: { date: 1 } }
   ]);
 
-  const currentSales = currentPeriodAggregation.reduce((sum, day) => sum + day.totalSales, 0);
-  const currentOrders = currentPeriodAggregation.reduce((sum, day) => sum + day.totalOrders, 0);
-  const currentItems = currentPeriodAggregation.reduce((sum, day) => sum + day.totalItems, 0);
-  const currentAOV = currentOrders > 0 ? currentSales / currentOrders : 0;
+  const salesDataByDate = currentPeriodAggregation.reduce((acc, item) => {
+    acc[item.date] = item;
+    return acc;
+  }, {});
 
-  // --- Previous Period Calculation ---
-  let previousSales = 0;
-  let previousOrders = 0;
-  let previousAOV = 0;
+  const dates = [];
+  let currentDate = new Date(currentPeriodInfo.startDate);
 
-  if (currentPeriodInfo && currentPeriodInfo.startDate && currentPeriodInfo.endDate && currentPeriodInfo.period) {
-    const prevPeriodDates = calculatePreviousPeriod(currentPeriodInfo.startDate, currentPeriodInfo.endDate, currentPeriodInfo.period);
-    
-    const prevMatchStage = {
-      createdAt: { $gte: prevPeriodDates.startDate, $lte: prevPeriodDates.endDate },
-      status: "Selesai", // Ensure we only count completed orders for comparison
+  while (currentDate <= currentPeriodInfo.endDate) {
+    // Adjust to get the correct date string & day name for Asia/Jakarta timezone
+    const jakartaTime = new Date(currentDate.getTime() + (7 * 3600 * 1000));
+    const dateStr = jakartaTime.toISOString().split('T')[0];
+
+    const existingData = salesDataByDate[dateStr] || {
+      totalSales: 0,
+      totalOrders: 0,
+      totalItems: 0
     };
-    if (productCategory) {
-      prevMatchStage["items.product.category"] = productCategory;
-    }
 
-    const previousPeriodTotals = await Order.aggregate([
-      { $match: prevMatchStage },
-      { $unwind: "$items" },
-      ...(productCategory ? [
-        {
-          $lookup: {
-            from: "products",
-            localField: "items.product",
-            foreignField: "_id",
-            as: "productDetails",
-          },
-        },
-        { $unwind: "$productDetails" },
-        { $match: { "productDetails.category": productCategory } }
-      ] : []),
-      {
-        $group: {
-          _id: null,
-          totalSales: { $sum: { $multiply: ["$items.unitPrice", "$items.quantity"] } },
-          totalOrders: { $addToSet: "$_id" },
-        },
-      },
-      {
-        $project: {
-            _id: 0,
-            totalSales: 1,
-            totalOrders: { $size: "$totalOrders" },
-        }
-      }
-    ]);
+    dates.push({
+      tanggal: dateStr,
+      hari: getDayName(jakartaTime), // Use the adjusted time for day name
+      totalPenjualan: existingData.totalSales,
+      jumlahOrder: existingData.totalOrders,
+      jumlahItem: existingData.totalItems
+    });
 
-    if (previousPeriodTotals.length > 0) {
-      previousSales = previousPeriodTotals[0].totalSales || 0;
-      previousOrders = previousPeriodTotals[0].totalOrders || 0;
-      previousAOV = previousOrders > 0 ? previousSales / previousOrders : 0;
-    }
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
-  
-  // --- Calculate Growth --- 
-  const salesGrowthPercentage = calculateGrowth(currentSales, previousSales);
-  const ordersGrowthPercentage = calculateGrowth(currentOrders, previousOrders);
-  const aovGrowthPercentage = calculateGrowth(currentAOV, previousAOV);
+
+  const summary = {
+    totalPenjualan: dates.reduce((sum, day) => sum + day.totalPenjualan, 0),
+    jumlahOrder: dates.reduce((sum, day) => sum + day.jumlahOrder, 0),
+    jumlahItem: dates.reduce((sum, day) => sum + day.jumlahItem, 0),
+    rataRataPenjualanHarian: dates.length > 0 ? 
+      (dates.reduce((sum, day) => sum + day.totalPenjualan, 0) / dates.length) : 0
+  };
 
   return {
-    dailySales: currentPeriodAggregation,
-    summary: {
-      totalPeriodSales: currentSales,
-      totalPeriodOrders: currentOrders,
-      totalPeriodItems: currentItems,
-      averageDailySales:
-        currentPeriodAggregation.length > 0
-          ? currentSales / currentPeriodAggregation.length
-          : 0,
-      averageOrderValue: currentAOV,
-      salesGrowthPercentage: salesGrowthPercentage,
-      ordersGrowthPercentage: ordersGrowthPercentage,
-      aovGrowthPercentage: aovGrowthPercentage,
-    },
+    dailySales: dates,
+    summary
   };
 };
 
@@ -426,100 +415,88 @@ const generateDailySalesReport = async (filter, productCategory, currentPeriodIn
  * @private
  */
 const generateMonthlySalesReport = async (filter, productCategory, currentPeriodInfo) => {
-  const matchStage = { ...filter }; // Filter for the current period
+  const matchStage = { ...filter };
 
   if (productCategory) {
     matchStage["items.product.category"] = productCategory;
   }
 
-  // --- Current Period Aggregation (by month) ---
+  const getDayName = (date) => {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    return days[date.getUTCDay()];
+  };
+
   const currentPeriodAggregation = await Order.aggregate([
-    { $match: matchStage },
-    { $unwind: "$items" },
-    {
-      $lookup: {
-        from: "products",
-        localField: "items.product",
-        foreignField: "_id",
-        as: "productDetails",
-      },
+    { 
+      $match: matchStage 
     },
-    { $unwind: "$productDetails" },
-    ...(productCategory
-      ? [{ $match: { "productDetails.category": productCategory } }]
-      : []),
     {
       $group: {
-        _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
-        totalSales: { $sum: { $multiply: ["$items.unitPrice", "$items.quantity"] } },
-        totalOrders: { $addToSet: "$_id" },
-        totalItems: { $sum: "$items.quantity" },
-      },
+        _id: {
+          $dateToString: { 
+            format: "%Y-%m-%d", 
+            date: "$createdAt",
+            timezone: "Asia/Jakarta"
+          }
+        },
+        totalSales: { $sum: "$paymentDetails.total" },
+        totalOrders: { $sum: 1 },
+        totalItems: { $sum: { $sum: "$items.quantity" } }
+      }
     },
     {
       $project: {
         _id: 0,
-        year: "$_id.year",
-        month: "$_id.month",
-        period: { $concat: [{ $toString: "$_id.year" }, "-", { $cond: [{ $lt: ["$_id.month", 10] }, { $concat: ["0", { $toString: "$_id.month" }] },{ $toString: "$_id.month" }] }] },
+        date: "$_id",
         totalSales: 1,
-        totalOrders: { $size: "$totalOrders" },
-        totalItems: 1,
-      },
+        totalOrders: 1,
+        totalItems: 1
+      }
     },
-    { $sort: { year: 1, month: 1 } },
+    { $sort: { date: 1 } }
   ]);
 
-  const currentSales = currentPeriodAggregation.reduce((sum, m) => sum + m.totalSales, 0);
-  const currentOrders = currentPeriodAggregation.reduce((sum, m) => sum + m.totalOrders, 0);
-  const currentItems = currentPeriodAggregation.reduce((sum, m) => sum + m.totalItems, 0);
-  const currentAOV = currentOrders > 0 ? currentSales / currentOrders : 0;
+  const salesDataByDate = currentPeriodAggregation.reduce((acc, item) => {
+    acc[item.date] = item;
+    return acc;
+  }, {});
 
-  // --- Previous Period Calculation ---
-  let previousSales = 0;
-  let previousOrders = 0;
-  let previousAOV = 0;
+  const dates = [];
+  let currentDate = new Date(currentPeriodInfo.startDate);
 
-  if (currentPeriodInfo && currentPeriodInfo.startDate && currentPeriodInfo.endDate && currentPeriodInfo.period) {
-    const prevPeriodDates = calculatePreviousPeriod(currentPeriodInfo.startDate, currentPeriodInfo.endDate, currentPeriodInfo.period);
-    const prevMatchStage = {
-      createdAt: { $gte: prevPeriodDates.startDate, $lte: prevPeriodDates.endDate },
-      status: "Selesai",
+  while (currentDate <= currentPeriodInfo.endDate) {
+    // Adjust to get the correct date string & day name for Asia/Jakarta timezone
+    const jakartaTime = new Date(currentDate.getTime() + (7 * 3600 * 1000));
+    const dateStr = jakartaTime.toISOString().split('T')[0];
+
+    const existingData = salesDataByDate[dateStr] || {
+      totalSales: 0,
+      totalOrders: 0,
+      totalItems: 0
     };
-    if (productCategory) prevMatchStage["items.product.category"] = productCategory;
 
-    const previousPeriodTotals = await Order.aggregate([
-      { $match: prevMatchStage }, { $unwind: "$items" },
-      ...(productCategory ? [ { $lookup: { from: "products", localField: "items.product", foreignField: "_id", as: "productDetails" } }, { $unwind: "$productDetails" }, { $match: { "productDetails.category": productCategory } } ] : []),
-      { $group: { _id: null, totalSales: { $sum: { $multiply: ["$items.unitPrice", "$items.quantity"] } }, totalOrders: { $addToSet: "$_id" } } },
-      { $project: { _id: 0, totalSales: 1, totalOrders: { $size: "$totalOrders" } } }
-    ]);
-    if (previousPeriodTotals.length > 0) {
-      previousSales = previousPeriodTotals[0].totalSales || 0;
-      previousOrders = previousPeriodTotals[0].totalOrders || 0;
-      previousAOV = previousOrders > 0 ? previousSales / previousOrders : 0;
-    }
+    dates.push({
+      tanggal: dateStr,
+      hari: getDayName(jakartaTime), // Use the adjusted time for day name
+      totalPenjualan: existingData.totalSales,
+      jumlahOrder: existingData.totalOrders,
+      jumlahItem: existingData.totalItems
+    });
+
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
-  
-  const salesGrowthPercentage = calculateGrowth(currentSales, previousSales);
-  const ordersGrowthPercentage = calculateGrowth(currentOrders, previousOrders);
-  const aovGrowthPercentage = calculateGrowth(currentAOV, previousAOV);
+
+  const summary = {
+    totalPenjualan: dates.reduce((sum, day) => sum + day.totalPenjualan, 0),
+    jumlahOrder: dates.reduce((sum, day) => sum + day.jumlahOrder, 0),
+    jumlahItem: dates.reduce((sum, day) => sum + day.jumlahItem, 0),
+    rataRataPenjualanHarian: dates.length > 0 ? 
+      (dates.reduce((sum, day) => sum + day.totalPenjualan, 0) / dates.length) : 0
+  };
 
   return {
-    monthlySales: currentPeriodAggregation,
-    summary: {
-      totalPeriodSales: currentSales,
-      totalPeriodOrders: currentOrders,
-      totalPeriodItems: currentItems,
-      averageMonthlySales:
-        currentPeriodAggregation.length > 0
-          ? currentSales / currentPeriodAggregation.length
-          : 0,
-      averageOrderValue: currentAOV,
-      salesGrowthPercentage,
-      ordersGrowthPercentage,
-      aovGrowthPercentage,
-    },
+    monthlySales: dates,
+    summary
   };
 };
 
@@ -528,99 +505,68 @@ const generateMonthlySalesReport = async (filter, productCategory, currentPeriod
  * @private
  */
 const generateYearlySalesReport = async (filter, productCategory, currentPeriodInfo) => {
-  const matchStage = { ...filter }; // Filter for the current period
+  const matchStage = { ...filter };
+  const completedStatuses = ['Selesai Produksi', 'Siap Kirim', 'Selesai'];
 
   if (productCategory) {
     matchStage["items.product.category"] = productCategory;
   }
 
-  // --- Current Period Aggregation (by year) ---
+  // Mendapatkan nama bulan dalam bahasa Indonesia
+  const getMonthName = (monthNumber) => {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return months[monthNumber - 1];
+  };
+
+  // --- Current Period Aggregation (by month) ---
   const currentPeriodAggregation = await Order.aggregate([
-    { $match: matchStage },
-    { $unwind: "$items" },
-    {
-      $lookup: {
-        from: "products",
-        localField: "items.product",
-        foreignField: "_id",
-        as: "productDetails",
-      },
-    },
-    { $unwind: "$productDetails" },
-    ...(productCategory
-      ? [{ $match: { "productDetails.category": productCategory } }]
-      : []),
+    { $match: { ...matchStage, status: { $in: completedStatuses } } },
     {
       $group: {
-        _id: { year: { $year: "$createdAt" } },
-        totalSales: { $sum: { $multiply: ["$items.unitPrice", "$items.quantity"] } },
+        _id: { 
+          month: { $month: "$createdAt" }
+        },
+        totalSales: { $sum: "$paymentDetails.total" },
         totalOrders: { $addToSet: "$_id" },
-        totalItems: { $sum: "$items.quantity" },
-      },
+        totalItems: { $sum: { $sum: "$items.quantity" } }
+      }
     },
     {
       $project: {
         _id: 0,
-        year: "$_id.year",
-        totalSales: 1,
-        totalOrders: { $size: "$totalOrders" },
-        totalItems: 1,
-      },
+        monthNum: "$_id.month",
+        totalPenjualan: "$totalSales",
+        jumlahOrder: { $size: "$totalOrders" },
+        jumlahItem: "$totalItems"
+      }
     },
-    { $sort: { year: 1 } },
+    { $sort: { monthNum: 1 } }
   ]);
 
-  const currentSales = currentPeriodAggregation.reduce((sum, y) => sum + y.totalSales, 0);
-  const currentOrders = currentPeriodAggregation.reduce((sum, y) => sum + y.totalOrders, 0);
-  const currentItems = currentPeriodAggregation.reduce((sum, y) => sum + y.totalItems, 0);
+  // Transform data to include month names
+  const yearlySales = currentPeriodAggregation.map(month => ({
+    bulan: getMonthName(month.monthNum),
+    totalPenjualan: month.totalPenjualan,
+    jumlahOrder: month.jumlahOrder,
+    jumlahItem: month.jumlahItem
+  }));
+
+  const currentSales = yearlySales.reduce((sum, month) => sum + month.totalPenjualan, 0);
+  const currentOrders = yearlySales.reduce((sum, month) => sum + month.jumlahOrder, 0);
+  const currentItems = yearlySales.reduce((sum, month) => sum + month.jumlahItem, 0);
   const currentAOV = currentOrders > 0 ? currentSales / currentOrders : 0;
 
-  // --- Previous Period Calculation ---
-  let previousSales = 0;
-  let previousOrders = 0;
-  let previousAOV = 0;
-
-  if (currentPeriodInfo && currentPeriodInfo.startDate && currentPeriodInfo.endDate && currentPeriodInfo.period) {
-    const prevPeriodDates = calculatePreviousPeriod(currentPeriodInfo.startDate, currentPeriodInfo.endDate, currentPeriodInfo.period);
-    const prevMatchStage = {
-      createdAt: { $gte: prevPeriodDates.startDate, $lte: prevPeriodDates.endDate },
-      status: "Selesai",
-    };
-    if (productCategory) prevMatchStage["items.product.category"] = productCategory;
-
-    const previousPeriodTotals = await Order.aggregate([
-      { $match: prevMatchStage }, { $unwind: "$items" },
-      ...(productCategory ? [ { $lookup: { from: "products", localField: "items.product", foreignField: "_id", as: "productDetails" } }, { $unwind: "$productDetails" }, { $match: { "productDetails.category": productCategory } } ] : []),
-      { $group: { _id: null, totalSales: { $sum: { $multiply: ["$items.unitPrice", "$items.quantity"] } }, totalOrders: { $addToSet: "$_id" } } },
-      { $project: { _id: 0, totalSales: 1, totalOrders: { $size: "$totalOrders" } } }
-    ]);
-    if (previousPeriodTotals.length > 0) {
-      previousSales = previousPeriodTotals[0].totalSales || 0;
-      previousOrders = previousPeriodTotals[0].totalOrders || 0;
-      previousAOV = previousOrders > 0 ? previousSales / previousOrders : 0;
-    }
-  }
-  
-  const salesGrowthPercentage = calculateGrowth(currentSales, previousSales);
-  const ordersGrowthPercentage = calculateGrowth(currentOrders, previousOrders);
-  const aovGrowthPercentage = calculateGrowth(currentAOV, previousAOV);
-
   return {
-    yearlySales: currentPeriodAggregation, // This contains data grouped by year for the chart
-    // monthlySales: also needs to be populated if period === 'yearly' for detailed table breakdown by month
+    yearlySales,
     summary: {
       totalPeriodSales: currentSales,
       totalPeriodOrders: currentOrders,
       totalPeriodItems: currentItems,
-      averageYearlySales: // This was specific to the old yearly summary
-        currentPeriodAggregation.length > 0
-          ? currentSales / currentPeriodAggregation.length
-          : 0,
-      averageOrderValue: currentAOV,
-      salesGrowthPercentage,
-      ordersGrowthPercentage,
-      aovGrowthPercentage,
-    },
+      averageOrderValue: currentAOV
+    }
   };
 };
 

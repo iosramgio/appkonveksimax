@@ -76,7 +76,7 @@ const DashboardStats = ({ stats }) => {
         </div>
       ),
       growth: salesGrowth,
-      growthPeriodText: "dari 7 hari lalu"
+      growthPeriodText: "dari 30 hari lalu"
     },
     {
       title: 'Total Pesanan',
@@ -89,7 +89,7 @@ const DashboardStats = ({ stats }) => {
         </div>
       ),
       growth: ordersGrowth,
-      growthPeriodText: "dari 7 hari lalu"
+      growthPeriodText: "dari 30 hari lalu"
     },
     {
       title: 'Pesanan Pending',

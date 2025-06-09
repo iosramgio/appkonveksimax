@@ -34,7 +34,7 @@ ChartJS.register(
 // import {DateFnsAdapter} from 'chartjs-adapter-date-fns'; // Ini biasanya tidak diekspos seperti ini
 // _adapters._date.override(new DateFnsAdapter()); // Ini cara lama dan mungkin tidak berlaku
 
-const SalesChart = ({ data = [] }) => {
+const SalesChart = ({ data = [], period = 'monthly' }) => {
   const chartData = {
     labels: data.map(item => item.date),
     datasets: [
@@ -87,17 +87,14 @@ const SalesChart = ({ data = [] }) => {
     },
     scales: {
       x: {
-        type: 'time',
-        time: {
-          unit: 'day',
-          tooltipFormat: 'PP',
-          displayFormats: {
-            day: 'dd MMM'
-          }
-        },
+        type: 'category',
         title: {
           display: true,
-          text: 'Tanggal'
+          text: period === 'yearly' ? 'Bulan' : period === 'weekly' ? 'Tanggal' : 'Tanggal'
+        },
+        ticks: {
+          maxRotation: 45,
+          minRotation: 45
         }
       },
       'y-revenue': {

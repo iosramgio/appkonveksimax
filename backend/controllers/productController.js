@@ -30,6 +30,20 @@ const createProduct = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // --- Start: Generate Automatic Product Code ---
+    const lastProduct = await Product.findOne({ productCode: { $regex: /^PRODUK-/ } })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    let nextProductNumber = 1;
+    if (lastProduct && lastProduct.productCode) {
+      const lastNumber = parseInt(lastProduct.productCode.split('-')[1], 10);
+      nextProductNumber = lastNumber + 1;
+    }
+    
+    const productCode = `PRODUK-${String(nextProductNumber).padStart(4, '0')}`;
+    // --- End: Generate Automatic Product Code ---
+
     // Parse arrays from stringified JSON
     const parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
     const parsedColors = typeof colors === 'string' ? JSON.parse(colors) : colors;
@@ -37,6 +51,7 @@ const createProduct = async (req, res) => {
 
     // Create product instance
     const product = new Product({
+      productCode,
       name,
       description,
       basePrice: Number(basePrice),
@@ -320,35 +335,20 @@ const updateProduct = async (req, res) => {
       });
     }
 
-    // Regenerate SKUs if relevant attributes changed
-    try {
-      if (
-        sizes !== undefined ||
-        colors !== undefined ||
-        materials !== undefined ||
-        req.body.basePrice !== undefined ||
-        req.body.dozenPrice !== undefined
-      ) {
-        product.skus = generateProductSKUs(product);
-      }
-    } catch (skuError) {
-      console.error('Error generating SKUs:', skuError);
-      return res.status(400).json({ 
-        message: "Error generating product SKUs", 
-        error: skuError.message 
-      });
-    }
+    // Check if attributes affecting SKUs have changed
+    const relevantFieldsChanged = 
+      sizes || colors || materials || (req.body.productCode && req.body.productCode !== product.productCode);
 
-    // Save updated product
-    try {
-      await product.save();
-    } catch (saveError) {
-      console.error('Error saving product:', saveError);
-      return res.status(500).json({ 
-        message: "Error saving product", 
-        error: saveError.message 
-      });
+    // Regenerate SKUs if relevant attributes changed or if SKUs seem to be in the old format
+    const skusNeedUpdate = !product.skus || product.skus.length === 0 || !product.skus.every(s => s.sku && s.sku.startsWith(product.productCode));
+
+    if (relevantFieldsChanged || skusNeedUpdate) {
+      console.log("Regenerating SKUs due to product update.");
+      product.skus = generateProductSKUs(product);
     }
+    
+    // Save updated product
+    const updatedProduct = await product.save();
 
     // Log activity
     try {
@@ -368,7 +368,7 @@ const updateProduct = async (req, res) => {
 
     res.json({
       message: "Product updated successfully",
-      product,
+      product: updatedProduct,
     });
   } catch (error) {
     console.error("Update product error:", error);

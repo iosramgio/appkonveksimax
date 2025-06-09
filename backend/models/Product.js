@@ -7,6 +7,11 @@ const ProductSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    productCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     description: {
       type: String,
       trim: true,

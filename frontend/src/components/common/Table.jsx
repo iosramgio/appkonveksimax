@@ -177,8 +177,10 @@ const Table = ({
   const startIndex = (localCurrentPage - 1) * localItemsPerPage;
   const endIndex = startIndex + localItemsPerPage;
   
-  // Use slice for client-side pagination only if no onPageChange handler
-  const displayData = onPageChange ? localData : localData.slice(startIndex, endIndex);
+  // Conditionally apply client-side pagination
+  const displayData = pagination && !onPageChange 
+    ? localData.slice(startIndex, endIndex) 
+    : localData;
 
   return (
     <div className={`shadow overflow-hidden border-b border-gray-200 ${containerClassName} ${className}`}>

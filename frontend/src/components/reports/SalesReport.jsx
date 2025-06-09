@@ -40,9 +40,13 @@ const SalesReport = ({
   
   useEffect(() => {
     if (!initialStartDate || !initialEndDate) {
+      const today = new Date();
+      const endDateString = today.toISOString().split('T')[0];
+      const startDateString = getDefaultStartDate(selectedPeriod);
+      
       setDateRange({
-        startDate: getDefaultStartDate(selectedPeriod),
-        endDate: new Date().toISOString().split('T')[0]
+        startDate: startDateString,
+        endDate: endDateString
       });
     }
   }, [selectedPeriod, initialStartDate, initialEndDate]);
@@ -53,17 +57,17 @@ const SalesReport = ({
   
   function getDefaultStartDate(periodType) {
     const today = new Date();
-    let startDate = new Date();
+    let startDate = new Date(today);
     
     if (periodType === 'weekly') {
-      // Last 7 days
-      startDate.setDate(today.getDate() - 7);
+      // Mengambil tanggal awal minggu (Senin) dari minggu ini
+      const day = today.getDay(); // Use standard UTC day
+      const diff = day === 0 ? 6 : day - 1; 
+      startDate.setDate(today.getDate() - diff);
     } else if (periodType === 'monthly') {
-      // Last 30 days
-      startDate.setDate(today.getDate() - 30);
+      startDate.setDate(today.getDate() - 29); // 30 days including today
     } else if (periodType === 'yearly') {
-      // Last 365 days
-      startDate.setDate(today.getDate() - 365);
+      startDate.setFullYear(today.getFullYear() - 1);
     }
     
     return startDate.toISOString().split('T')[0];
@@ -71,7 +75,12 @@ const SalesReport = ({
   
   const fetchReportData = async (currentUISelectedPeriod, currentUIStartDate, currentUIEndDate) => {
     setLoading(true);
-    console.log("[SalesReport] Fetching report with UI period:", currentUISelectedPeriod, "startDate:", currentUIStartDate, "endDate:", currentUIEndDate);
+    console.log("[SalesReport] Fetching report with UI period:", currentUISelectedPeriod, 
+      "startDate:", currentUIStartDate, 
+      "endDate:", currentUIEndDate,
+      "current time:", new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' })
+    );
+    
     try {
       const response = await api.get(`/reports/sales?period=${currentUISelectedPeriod}&startDate=${currentUIStartDate}&endDate=${currentUIEndDate}`);
       
@@ -89,72 +98,96 @@ const SalesReport = ({
         
         let timelineDataSource = [];
         if (currentUISelectedPeriod === 'yearly' && backendReport.yearlySales) {
-            timelineDataSource = backendReport.yearlySales;
+          timelineDataSource = backendReport.yearlySales;
+        } else if (currentUISelectedPeriod === 'monthly' && backendReport.monthlySales) {
+          timelineDataSource = backendReport.monthlySales;
         } else if (backendReport.dailySales) {
-            timelineDataSource = backendReport.dailySales;
+          timelineDataSource = backendReport.dailySales;
         }
 
-        console.log(`[SalesReport] Period: ${currentUISelectedPeriod}, RawTimelineDataSource from backend:`, JSON.parse(JSON.stringify(timelineDataSource)));
+        console.log(`[SalesReport] Period: ${currentUISelectedPeriod}, RawTimelineDataSource from backend:`, timelineDataSource);
 
-        const transformedForChart = timelineDataSource.map(item => ({
-          date: item.date || (item.year ? `${item.year}-01-01` : null) || item.period,
-          dailyRevenue: item.totalSales,
-          dailyOrderCount: item.totalOrders
-        })).filter(item => item.date && item.dailyRevenue !== undefined && item.dailyOrderCount !== undefined);
-        console.log(`[SalesReport] Period: ${currentUISelectedPeriod}, TransformedForChart:`, JSON.parse(JSON.stringify(transformedForChart)));
+        const transformedForChart = timelineDataSource.map(item => {
+          let date;
+          if (currentUISelectedPeriod === 'yearly') {
+            date = item.bulan;
+          } else if (currentUISelectedPeriod === 'monthly' || currentUISelectedPeriod === 'weekly') {
+            if (currentUISelectedPeriod === 'weekly') {
+              // Format tanggal dengan timezone Asia/Jakarta
+              const itemDate = new Date(item.tanggal);
+              const jakartaDate = new Date(itemDate.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+              const formattedDate = jakartaDate.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              });
+              date = `${item.hari}, ${formattedDate}`;
+            } else {
+              const dateObj = new Date(item.tanggal);
+              const jakartaDate = new Date(dateObj.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+              date = jakartaDate.toLocaleDateString('id-ID', { 
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+              });
+            }
+          }
+
+          return {
+            date: date,
+            dailyRevenue: item.totalPenjualan,
+            dailyOrderCount: item.jumlahOrder
+          };
+        }).filter(item => item.dailyRevenue !== undefined && item.dailyOrderCount !== undefined);
+
+        console.log(`[SalesReport] Period: ${currentUISelectedPeriod}, TransformedForChart:`, transformedForChart);
         setChartData(transformedForChart);
 
         const transformedForTable = timelineDataSource.map(item => ({
-          date: item.date || item.month || item.year || item.period,
-          totalSales: item.totalSales,
-          totalOrders: item.totalOrders,
-          averageOrderValue: item.totalOrders > 0 ? item.totalSales / item.totalOrders : 0
+          tanggal: item.tanggal,
+          hari: item.hari,
+          bulan: item.bulan,
+          totalPenjualan: item.totalPenjualan,
+          jumlahOrder: item.jumlahOrder,
+          rataRataNilaiPesanan: item.jumlahOrder > 0 ? item.totalPenjualan / item.jumlahOrder : 0
         }));
         setTableDetailsData(transformedForTable);
-
       } else {
         setReportData({ overallSummary: null, summaryForSelectedPeriod: null });
         setChartData([]);
         setTableDetailsData([]);
       }
     } catch (error) {
-      console.error('Error fetching sales report:', error.response?.data || error.message);
+      console.error('Error fetching report data:', error);
       showNotification('Gagal memuat laporan penjualan', 'error');
     } finally {
       setLoading(false);
     }
   };
   
-  const formatPeriodLabel = (value, periodType) => {
-    if (!value) return 'N/A';
-    if (periodType === 'yearly' && String(value).match(/^\d{4}$/)) {
-      return value;
-    }
-    try {
-        const dateObj = new Date(value);
-        if (isNaN(dateObj.getTime())) return value;
-
-        if (periodType === 'yearly' && String(value).includes('-')) {
-             return new Date(value).getFullYear().toString();
-        }
-        if (periodType === 'monthly') {
-             return dateObj.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-        }
-        return dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-    } catch (e) {
-        return value;
-    }
-  };
-  
   const columns = [
     {
-      header: selectedPeriod === 'yearly' ? 'Tahun' : 'Tanggal',
-      accessor: 'date',
-      cell: (row) => formatPeriodLabel(row.date, selectedPeriod)
+      header: 'Tanggal',
+      accessor: 'tanggal',
+      cell: (row) => {
+        if (selectedPeriod === 'yearly') {
+          return row.bulan || 'N/A';
+        }
+        if (!row.tanggal) return 'N/A';
+        const date = new Date(row.tanggal);
+        const correctedDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+        const dayName = row.hari;
+        const formattedDate = correctedDate.toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+        return `${dayName}, ${formattedDate}`;
+      }
     },
-    { header: 'Total Penjualan', accessor: 'totalSales', cell: (row) => formatCurrency(row.totalSales) },
-    { header: 'Jumlah Pesanan', accessor: 'totalOrders', cell: (row) => row.totalOrders },
-    { header: 'Rata-rata Nilai Pesanan', accessor: 'averageOrderValue', cell: (row) => formatCurrency(row.averageOrderValue) }
+    { header: 'Total Penjualan', accessor: 'totalPenjualan', cell: (row) => formatCurrency(row.totalPenjualan || 0) },
+    { header: 'Jumlah Pesanan', accessor: 'jumlahOrder', cell: (row) => row.jumlahOrder || 0 },
+    { header: 'Rata-rata Nilai Pesanan', accessor: 'rataRataNilaiPesanan', cell: (row) => formatCurrency(row.rataRataNilaiPesanan || 0) }
   ];
   
   const handleExport = async () => {
@@ -287,7 +320,7 @@ const SalesReport = ({
           
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-medium mb-4">Detail Penjualan ({selectedPeriod === 'weekly' ? 'Mingguan' : selectedPeriod === 'monthly' ? 'Bulanan' : 'Tahunan'})</h3>
-            <Table columns={columns} data={tableDetailsData} loading={loading} />
+            <Table columns={columns} data={tableDetailsData} loading={loading} pagination={false} />
           </div>
         </>
       ) : (
