@@ -4,7 +4,7 @@ Sistem manajemen untuk usaha konveksi dengan fitur pemesanan online, pembayaran 
 ---
 
 
-![alt text]([?raw=true](https://github.com/iosramgio/appkonveksimax/blob/main/frontend/public/Desain%20tanpa%20judul%20(6).png)
+![alt text]((https://github.com/iosramgio/appkonveksimax/blob/main/frontend/public/Desain%20tanpa%20judul%20(6).png)
 
 ---
 
